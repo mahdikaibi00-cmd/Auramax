@@ -10,10 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
 
     <style>
-
-
-
-
 /* DRAG & DROP ZONE */
         .drop-zone { transition: all 0.3s ease; border: 1px dashed rgba(255,255,255,0.2); }
         .drop-zone.drag-over { border-color: #6366f1; background: rgba(99,102,241,0.1); transform: scale(1.02); }
@@ -22,14 +18,9 @@
         .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-
-
-
 /* CHECKBOX CUSTOM STYLING */
         .plan-radio:checked + div { border-color: #6366f1; background-color: rgba(99,102,241,0.1); }
         .plan-radio:checked + div .radio-circle { border-color: #6366f1; background-color: #6366f1; }
-
-
 
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
         
@@ -90,11 +81,6 @@
     </head>
 <body class="antialiased overflow-x-hidden selection:bg-indigo-500 selection:text-white">
 
-
-
-
-
-
 <nav class="fixed top-0 w-full z-50 glass-panel border-t-0 border-x-0 h-20 flex items-center transition-all duration-300" id="navbar">
         <div class="max-w-7xl mx-auto px-6 w-full flex justify-between items-center">
             <div class="flex items-center gap-2 cursor-pointer" onclick="location.reload()">
@@ -104,7 +90,7 @@
             
             <div class="hidden md:flex gap-8 text-sm text-gray-400 font-medium">
                 <a href="#how-it-works" class="hover:text-white transition">Methodology</a>
-                <a href="#science" class="hover:text-white transition">Science</a>
+                <a href="#preview" class="hover:text-white transition">The Report</a>
                 <a href="#pricing" class="hover:text-white transition">Plans</a>
             </div>
 
@@ -116,12 +102,6 @@
             </button>
         </div>
     </nav>
-
-
-
-
-
-
 
 <section class="min-h-screen flex items-center pt-20 relative overflow-hidden bg-[#0B0E14]">
         <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none"></div>
@@ -142,19 +122,28 @@
                     Upload a photo. Get a personalized improvement plan for style, grooming, skin, posture, and confidence — powered by aesthetic data analysis.
                 </p>
                 
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button onclick="triggerUpload('elite')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider glow-btn transition transform hover:scale-[1.02] flex items-center justify-center gap-2">
-                        <i data-lucide="scan" class="w-4 h-4"></i> Analyze My Look
-                    </button>
-                    
-                    <a href="#how-it-works" class="px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider border border-white/10 hover:bg-white/5 transition text-center">
-                        How It Works
-                    </a>
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button onclick="triggerUpload('elite')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider glow-btn transition transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                            <i data-lucide="scan" class="w-4 h-4"></i> Analyze My Look
+                        </button>
+                        
+                        <a href="#how-it-works" class="px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider border border-white/10 hover:bg-white/5 transition text-center flex items-center justify-center">
+                            How It Works
+                        </a>
+                    </div>
+                    <div class="flex items-center gap-4 text-[10px] text-gray-500 font-medium tracking-wide pl-2">
+                        <span class="flex items-center gap-1.5"><i data-lucide="lock" class="w-3 h-3"></i> Private</span>
+                        <span class="w-1 h-1 bg-gray-700 rounded-full"></span>
+                        <span class="flex items-center gap-1.5">No public rating</span>
+                        <span class="w-1 h-1 bg-gray-700 rounded-full"></span>
+                        <span class="flex items-center gap-1.5">Data deleted</span>
+                    </div>
                 </div>
 
                 <div class="pt-8 border-t border-white/5 flex flex-wrap gap-6 text-xs text-gray-500 font-medium">
-                    <div class="flex items-center gap-2"><i data-lucide="lock" class="w-3 h-3 text-indigo-400"></i> Private & Secure</div>
-                    <div class="flex items-center gap-2"><i data-lucide="brain-circuit" class="w-3 h-3 text-indigo-400"></i> AI-Powered Analysis</div>
+                    <div class="flex items-center gap-2"><i data-lucide="shield-check" class="w-3 h-3 text-indigo-400"></i> Secure Analysis</div>
+                    <div class="flex items-center gap-2"><i data-lucide="brain-circuit" class="w-3 h-3 text-indigo-400"></i> AI-Powered V2.4</div>
                     <div class="flex items-center gap-2"><i data-lucide="star" class="w-3 h-3 text-indigo-400"></i> Rated 4.8/5 by Users</div>
                 </div>
             </div>
@@ -179,12 +168,6 @@
             </div>
         </div>
     </section>
-
-
-
-
-
-
 
     <section id="how-it-works" class="py-24 bg-[#050505] relative">
         <div class="max-w-6xl mx-auto px-6">
@@ -219,7 +202,98 @@
         </div>
     </section>
 
-    <section id="science" class="py-24 bg-[#0B0E14] border-y border-white/5">
+
+
+
+
+
+
+
+
+
+<section class="py-24 bg-[#08080a] border-y border-white/5">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                
+                <div class="relative w-full aspect-[4/5] md:aspect-square rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.15)] group select-none">
+                    
+                    <img src="after.jpg" 
+                         alt="After Transformation" 
+                         class="absolute inset-0 w-full h-full object-cover">
+                    
+                    <div class="absolute top-4 right-4 bg-indigo-600/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider border border-indigo-400/50 shadow-lg z-10">
+                        Optimized
+                    </div>
+
+                    <div id="compare-overlay" class="absolute inset-0 w-full h-full overflow-hidden" style="clip-path: inset(0 50% 0 0);">
+                        <img src="before.jpg" 
+                             alt="Before Analysis" 
+                             class="absolute inset-0 w-full h-full object-cover">
+                        
+                        <div class="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider border border-white/10">
+                            Before
+                        </div>
+                    </div>
+
+                    <div id="slider-handle" class="absolute top-0 bottom-0 left-[50%] w-0.5 bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)] cursor-ew-resize z-20 flex items-center justify-center -translate-x-1/2">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-full border-2 border-white flex items-center justify-center shadow-xl transform transition-transform hover:scale-110 active:scale-95">
+                            <i data-lucide="chevrons-left-right" class="w-4 h-4 text-white"></i>
+                        </div>
+                    </div>
+
+                    <input type="range" min="0" max="100" value="50" 
+                           class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30"
+                           oninput="updateSlider(this.value)">
+                </div>
+                
+                <div>
+                    <h2 class="text-3xl font-heading font-bold mb-6">Why This Matters</h2>
+                    <p class="text-xl text-indigo-200 mb-6 font-light">Your appearance sends signals before you even speak.</p>
+                    <p class="text-gray-400 leading-relaxed mb-8">
+                        Scientific data confirms that small visual upgrades significantly change how you are perceived in social and professional settings. This isn't about vanity—it's about maximizing your presence.
+                    </p>
+                    
+                    <div class="space-y-4 mb-10">
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20"><i data-lucide="briefcase" class="w-4 h-4"></i></div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Professional Authority</h4>
+                                <p class="text-xs text-gray-500 mt-1">Grooming choices correlate with perceived competence.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20"><i data-lucide="users" class="w-4 h-4"></i></div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Social Confidence</h4>
+                                <p class="text-xs text-gray-500 mt-1">Optimizing your look removes subconscious insecurity.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="triggerUpload('elite')" class="group text-white border-b border-indigo-500 pb-1 hover:text-indigo-400 transition flex items-center gap-2 text-sm font-bold tracking-wide">
+                        Invest in your presence <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            function updateSlider(val) {
+                // We change the clip-path inset instead of width to prevent image squishing
+                document.getElementById('compare-overlay').style.clipPath = `inset(0 ${100 - val}% 0 0)`;
+                document.getElementById('slider-handle').style.left = val + '%';
+            }
+        </script>
+    </section>
+
+
+
+
+
+
+
+
+    <section id="science" class="py-24 bg-[#0B0E14]">
         <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
             <div>
                 <div class="text-indigo-400 text-xs font-bold uppercase tracking-[0.2em] mb-4">Methodology</div>
@@ -265,13 +339,6 @@
         </div>
     </section>
 
-
-
-
-
-
-
-
     <section class="py-20 bg-[#0a0f1c]">
         <div class="max-w-3xl mx-auto px-6 text-center">
             <div class="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-green-400">
@@ -287,48 +354,141 @@
         </div>
     </section>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <section class="py-24 bg-[#0B0E14] border-y border-white/5">
         <div class="max-w-6xl mx-auto px-6">
             <h2 class="text-3xl font-heading font-bold mb-12 text-center">Real Impact</h2>
             <div class="grid md:grid-cols-3 gap-6">
                 <div class="glass-panel p-8 rounded-2xl">
                     <div class="flex text-yellow-500 mb-4"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
-                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"I didn’t realize small grooming changes could make this much difference. The skincare advice was spot on."</p>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"I changed my haircut and posture based on the report. Within weeks I started getting compliments at work that I never got before."</p>
                     <div class="text-xs text-gray-500 font-bold uppercase">James D.</div>
                 </div>
                 <div class="glass-panel p-8 rounded-2xl">
                     <div class="flex text-yellow-500 mb-4"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
-                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"It gave me direction instead of random advice. Helped me build confidence before job interviews."</p>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"The skincare section identified exactly what I was doing wrong. My face cleared up in 10 days just by following the product routine."</p>
                     <div class="text-xs text-gray-500 font-bold uppercase">Michael R.</div>
                 </div>
                 <div class="glass-panel p-8 rounded-2xl">
                     <div class="flex text-yellow-500 mb-4"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
-                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"Actionable and kind. I thought it would be a roast, but it was actually a constructive roadmap."</p>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"It gave me direction instead of generic advice. Helped me build the confidence I needed before my job interviews."</p>
                     <div class="text-xs text-gray-500 font-bold uppercase">David S.</div>
                 </div>
             </div>
         </div>
     </section>
 
+    <section id="preview" class="py-24 bg-[#050505] overflow-hidden">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-3xl font-heading font-bold mb-6 text-center">See Your AI Blueprint</h2>
+            <p class="text-gray-400 text-center mb-12">Your report contains a structured breakdown of your aesthetic metrics.</p>
+            
+            <div class="relative glass-panel rounded-2xl p-1 border border-white/10 mx-auto max-w-4xl shadow-2xl">
+                <div class="bg-[#0B0E14] rounded-xl p-8 grid md:grid-cols-12 gap-6 relative">
+                    
+                    <div class="md:col-span-4 space-y-4">
+                        <div class="bg-white/5 rounded-lg p-4 border border-white/5">
+                            <div class="w-20 h-20 bg-gray-700 rounded-full mx-auto mb-3 animate-pulse"></div>
+                            <div class="text-center">
+                                <div class="h-4 bg-gray-700 rounded w-24 mx-auto mb-2"></div>
+                                <div class="inline-block px-2 py-1 bg-indigo-500/20 rounded text-[10px] text-indigo-300">Archetype: Classic Professional</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 rounded-lg p-4 border border-white/5 space-y-3">
+                            <div>
+                                <div class="text-[10px] text-gray-500 uppercase">Face Shape</div>
+                                <div class="text-white font-bold text-sm">Oval / Balanced</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-gray-500 uppercase">Skin Tone</div>
+                                <div class="text-white font-bold text-sm">Cool / Olive</div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <div class="md:col-span-8 grid grid-cols-2 gap-4">
+                        <div class="bg-white/5 rounded-lg p-5 border border-white/5 relative overflow-hidden">
+                            <h4 class="text-gray-400 text-xs uppercase mb-3 font-bold">Hair & Style</h4>
+                            <div class="space-y-3 filter blur-[2px]">
+                                <div class="flex justify-between text-xs text-gray-300"><span>Volume Balance</span> <span>Low</span></div>
+                                <div class="w-full h-1.5 bg-gray-700 rounded-full"><div class="w-[30%] h-full bg-red-500 rounded-full"></div></div>
+                                <div class="text-xs text-white mt-1">Rec: Increase top volume to balance jawline.</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 rounded-lg p-5 border border-white/5 relative overflow-hidden">
+                            <h4 class="text-gray-400 text-xs uppercase mb-3 font-bold">Skin Health</h4>
+                            <div class="space-y-3 filter blur-[2px]">
+                                <div class="flex justify-between text-xs text-gray-300"><span>Hydration</span> <span>Med</span></div>
+                                <div class="w-full h-1.5 bg-gray-700 rounded-full"><div class="w-[60%] h-full bg-yellow-500 rounded-full"></div></div>
+                                <div class="text-xs text-white mt-1">Rec: Add Hyaluronic Acid PM.</div>
+                            </div>
+                        </div>
+                        <div class="col-span-2 bg-white/5 rounded-lg p-5 border border-white/5 relative overflow-hidden">
+                            <h4 class="text-gray-400 text-xs uppercase mb-3 font-bold">Priority Map</h4>
+                            <div class="flex items-end gap-2 h-24 filter blur-sm opacity-50">
+                                <div class="w-full bg-indigo-900/40 h-[40%] rounded-t"></div>
+                                <div class="w-full bg-indigo-900/60 h-[70%] rounded-t"></div>
+                                <div class="w-full bg-indigo-500 h-[90%] rounded-t relative"><div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-white">Posture</div></div>
+                                <div class="w-full bg-indigo-900/50 h-[50%] rounded-t"></div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <div class="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/50 backdrop-blur-[1px] rounded-xl">
+                        <div class="w-14 h-14 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mb-3 border border-white/20 shadow-xl">
+                            <i data-lucide="lock" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div class="text-sm font-bold text-white mb-1">Personalized Analysis Locked</div>
+                        <button onclick="document.getElementById('upload-input').click()" class="text-xs text-indigo-400 hover:text-white transition font-medium underline underline-offset-4">
+                            Upload photo to generate yours
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
+    <section id="target-audience" class="py-16 bg-[#0B0E14] border-t border-white/5">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="grid md:grid-cols-2 gap-12">
+                <div>
+                    <h3 class="text-xl font-heading font-bold mb-6 text-white">Who This Is For</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-center gap-3 text-sm text-gray-300">
+                            <div class="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-green-500 shrink-0"><i data-lucide="check" class="w-3 h-3"></i></div>
+                            People working on self-improvement
+                        </li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300">
+                            <div class="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-green-500 shrink-0"><i data-lucide="check" class="w-3 h-3"></i></div>
+                            Professionals improving presence
+                        </li>
+                        <li class="flex items-center gap-3 text-sm text-gray-300">
+                            <div class="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-green-500 shrink-0"><i data-lucide="check" class="w-3 h-3"></i></div>
+                            Anyone who wants clear direction
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-heading font-bold mb-6 text-gray-400">Not For</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-center gap-3 text-sm text-gray-500">
+                            <div class="w-5 h-5 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></div>
+                            Public rating or roasting
+                        </li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500">
+                            <div class="w-5 h-5 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></div>
+                            Toxic comparison
+                        </li>
+                        <li class="flex items-center gap-3 text-sm text-gray-500">
+                            <div class="w-5 h-5 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></div>
+                            Unrealistic beauty standards
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<section id="pricing" class="py-24 bg-[#050505] relative overflow-hidden">
+    <section id="pricing" class="py-24 bg-[#050505] relative overflow-hidden">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-indigo-900/10 blur-[100px] rounded-full pointer-events-none"></div>
 
         <div class="max-w-4xl mx-auto px-6 relative z-10">
@@ -339,10 +499,11 @@
                 
                 <div class="glass-panel p-8 rounded-3xl border-white/10 hover:border-white/20 transition group bg-[#08080a] relative order-2 md:order-1 scale-95 opacity-90 hover:opacity-100">
                     <h3 class="text-2xl font-bold mb-2 text-white">Pro Blueprint</h3>
-                    <div class="flex items-baseline gap-1 mb-6">
+                    <div class="flex items-baseline gap-1 mb-2">
                         <span class="text-5xl font-bold text-white">$7</span>
                         <span class="text-gray-500 line-through text-sm">$49</span>
                     </div>
+                    <p class="text-[10px] text-gray-400 font-medium mb-6 h-6">Most users start here to discover their key upgrades.</p>
                     
                     <div class="space-y-5 mb-8">
                         <div class="flex gap-3 items-start">
@@ -378,6 +539,7 @@
                     <button onclick="triggerUpload('pro')" class="w-full border border-white/20 hover:bg-white/5 text-white py-4 rounded-xl text-sm font-bold transition">
                         Select Basic Plan
                     </button>
+                    <div class="text-center mt-3 text-[10px] text-gray-600">One-time payment. Instant report.</div>
                 </div>
 
                 <div class="glass-panel p-8 rounded-3xl border-indigo-500 relative bg-[#0B0E14] shadow-[0_0_60px_rgba(99,102,241,0.4)] transform md:scale-110 z-10 order-1 md:order-2 ring-1 ring-indigo-400/50">
@@ -386,10 +548,11 @@
                     </div>
                     
                     <h3 class="text-2xl font-bold mb-2 text-white">Elite Optimization</h3>
-                    <div class="flex items-baseline gap-1 mb-6">
+                    <div class="flex items-baseline gap-1 mb-2">
                         <span class="text-5xl font-bold text-indigo-400">$29</span>
                         <span class="text-gray-500 text-sm">/ Lifetime</span>
                     </div>
+                    <p class="text-[10px] text-indigo-200/60 font-medium mb-6 h-6">For those serious about maximizing their visual presence.</p>
                     
                     <div class="space-y-5 mb-8">
                         <div class="flex gap-3 items-start">
@@ -425,11 +588,6 @@
             </div>
         </div>
     </section>
-
-
-
-
-
 
     <section class="py-24 bg-[#0B0E14]">
         <div class="max-w-3xl mx-auto px-6">
@@ -469,12 +627,6 @@
         </div>
     </footer>
 
-
-
-
-
-
-
 <div id="upload-modal" class="fixed inset-0 bg-[#050505]/95 z-[90] hidden flex flex-col items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
         <div class="relative w-full max-w-2xl glass-panel rounded-3xl p-1 border border-white/10 shadow-2xl">
             
@@ -511,14 +663,6 @@
             </div>
         </div>
     </div>
-
-
-
-
-
-
-
-
 
 <div id="processing-modal" class="fixed inset-0 bg-[#050505]/95 z-[100] hidden flex flex-col items-center justify-center p-4 backdrop-blur-xl transition-opacity duration-300">
         
@@ -592,65 +736,6 @@
             <button onclick="location.reload()" class="absolute -bottom-12 left-1/2 -translate-x-1/2 text-xs text-gray-500 hover:text-white transition">Cancel</button>
         </div>
     </div>
-
-
-
-
-
-
-
-        <div id="payment-state" class="hidden w-full max-w-3xl relative opacity-0 transform translate-y-4 transition-all duration-700 ease-out">
-            
-            <div class="absolute inset-0 bg-[#0B0E14] rounded-2xl overflow-hidden filter blur-md opacity-50 scale-105 pointer-events-none">
-                <div class="p-6 grid grid-cols-2 gap-4 h-full">
-                    <div class="bg-white/10 rounded-lg h-32 w-full animate-pulse"></div>
-                    <div class="bg-white/10 rounded-lg h-32 w-full animate-pulse"></div>
-                    <div class="bg-white/10 rounded-lg h-48 w-full col-span-2 flex items-center justify-center">
-                        <div class="w-full h-2 bg-white/20 rounded-full mx-8"></div>
-                    </div>
-                    <div class="bg-white/10 rounded-lg h-10 w-full col-span-2"></div>
-                </div>
-            </div>
-
-            <div class="relative z-10 glass-panel p-1 rounded-2xl bg-gradient-to-b from-indigo-500/20 to-transparent border border-indigo-500/50 shadow-[0_0_80px_rgba(99,102,241,0.3)] max-w-md mx-auto">
-                <div class="bg-[#0B0E14] rounded-xl p-8 text-center overflow-hidden">
-                    
-                    <div class="inline-flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6 border border-green-500/20">
-                        <i data-lucide="check-circle" class="w-3 h-3"></i> Analysis Complete
-                    </div>
-
-                    <h2 class="text-3xl font-heading font-bold text-white mb-2">Results Ready</h2>
-                    <p class="text-gray-400 text-sm mb-6">We have generated your personalized <span class="text-white font-bold" id="selected-plan-name">Pro Blueprint</span>.</p>
-
-                    <div class="flex justify-center items-baseline gap-1 mb-8">
-                        <span class="text-4xl font-bold text-white" id="selected-plan-price">$7</span>
-                        <span class="text-sm text-gray-500">USD</span>
-                    </div>
-
-                    <a id="payment-link" href="#" class="group relative block w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition overflow-hidden">
-                        <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                        <span class="relative flex items-center justify-center gap-2">
-                            Unlock Full Report <i data-lucide="lock-open" class="w-4 h-4"></i>
-                        </span>
-                    </a>
-
-                    <div class="mt-4 flex justify-center gap-4 text-[10px] text-gray-500">
-                        <span class="flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> Secure SSL</span>
-                        <span class="flex items-center gap-1"><i data-lucide="star" class="w-3 h-3"></i> Money-Back Guarantee</span>
-                    </div>
-                </div>
-            </div>
-            
-            <button onclick="location.reload()" class="absolute -bottom-12 left-1/2 -translate-x-1/2 text-xs text-gray-500 hover:text-white transition">Cancel</button>
-        </div>
-    </div>
-
-
-
-
-
-
-
 
 <script>
     lucide.createIcons();
@@ -848,11 +933,7 @@
     }
 </script>
 
-
-
-
 <input type="file" id="upload-input" accept="image/*" class="hidden" style="display:none;">
-
 
 </body>
 </html>
