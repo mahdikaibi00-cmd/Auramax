@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Support | AuraMax</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        body { background-color: #050505; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .font-heading { font-family: 'Space Grotesk', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .input-field { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+        .input-field:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <nav class="w-full py-6 px-6 flex justify-between items-center max-w-7xl mx-auto">
+        <a href="index.html" class="flex items-center gap-2 group">
+            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></div>
+            <span class="font-heading font-bold text-xl tracking-wide">Back to Home</span>
+        </a>
+    </nav>
+
+    <main class="flex-1 flex items-center justify-center px-6 py-12 relative overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <div class="max-w-5xl w-full grid lg:grid-cols-2 gap-12 items-center relative z-10">
+            
+            <div class="space-y-8">
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-heading font-bold mb-4">We’re here to <br> <span class="text-indigo-500">help you grow.</span></h1>
+                    <p class="text-gray-400 text-lg leading-relaxed">Have a question about your analysis? Need technical support? Our team usually responds within 2 hours.</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-panel p-6 rounded-2xl flex items-start gap-4 hover:bg-white/5 transition">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0"><i data-lucide="mail" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="font-bold text-white mb-1">Email Support</h3>
+                            <p class="text-sm text-gray-400 mb-2">For general inquiries and refunds.</p>
+                            <a href="mailto:support@auramax.ai" class="text-indigo-400 text-sm hover:text-white transition">support@auramax.ai</a>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-panel p-6 rounded-2xl flex items-start gap-4 hover:bg-white/5 transition">
+                        <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 shrink-0"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="font-bold text-white mb-1">Privacy & Data</h3>
+                            <p class="text-sm text-gray-400 mb-2">Request data deletion or export.</p>
+                            <a href="privacy.html" class="text-green-400 text-sm hover:text-white transition">View Privacy Policy</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-8 md:p-10 rounded-3xl shadow-2xl relative">
+                <form action="https://formspree.io/f/YOUR_FORMSPREE_ID" method="POST" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Name</label>
+                            <input type="text" name="name" class="w-full input-field rounded-lg px-4 py-3 text-white placeholder-gray-600" placeholder="John Doe" required>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Email</label>
+                            <input type="email" name="email" class="w-full input-field rounded-lg px-4 py-3 text-white placeholder-gray-600" placeholder="john@example.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Subject</label>
+                        <select name="subject" class="w-full input-field rounded-lg px-4 py-3 text-white bg-black/40">
+                            <option>General Inquiry</option>
+                            <option>Technical Issue</option>
+                            <option>Billing & Refunds</option>
+                            <option>Partnership</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Message</label>
+                        <textarea name="message" rows="4" class="w-full input-field rounded-lg px-4 py-3 text-white placeholder-gray-600" placeholder="How can we help you?" required></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/25 transition transform hover:scale-[1.02]">
+                        Send Message
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="py-8 text-center text-xs text-gray-600 border-t border-white/5">
+        &copy; 2026 AuraMax AI. All rights reserved.
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

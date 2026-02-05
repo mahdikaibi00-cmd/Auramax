@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraMax | Advanced Aesthetic Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+
+    <style>
+
+
+
+
+/* DRAG & DROP ZONE */
+        .drop-zone { transition: all 0.3s ease; border: 1px dashed rgba(255,255,255,0.2); }
+        .drop-zone.drag-over { border-color: #6366f1; background: rgba(99,102,241,0.1); transform: scale(1.02); }
+        
+        /* ERROR SHAKE ANIMATION */
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+
+
+
+/* CHECKBOX CUSTOM STYLING */
+        .plan-radio:checked + div { border-color: #6366f1; background-color: rgba(99,102,241,0.1); }
+        .plan-radio:checked + div .radio-circle { border-color: #6366f1; background-color: #6366f1; }
+
+
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --brand-dark: #050505;
+            --brand-navy: #0B0E14;
+            --brand-purple: #6366f1;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+        }
+
+        body { background-color: var(--brand-dark); color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, .font-heading { font-family: 'Space Grotesk', sans-serif; }
+        
+        /* UTILITIES */
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); }
+        .gradient-text { background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glow-btn { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+        
+        /* SCANNER ANIMATION */
+        .scanner-container { position: relative; overflow: hidden; }
+        .scan-line {
+            position: absolute; width: 100%; height: 2px; background: #6366f1;
+            box-shadow: 0 0 15px #6366f1;
+            animation: scan 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            z-index: 10;
+        }
+        @keyframes scan { 0% { top: 0%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+        
+        .face-mesh-overlay {
+            background-image: radial-gradient(circle, #6366f1 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: 0.1;
+        }
+    </style>
+
+    <script>
+    !function(e){if(!window.pintrk){window.pintrk = function () {
+    window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var
+      n=window.pintrk;n.queue=[],n.version="3.0";var
+      t=document.createElement("script");t.async=!0,t.src=e;var
+      r=document.getElementsByTagName("script")[0];
+      r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
+
+    // --- YOUR PINTEREST TAG IDS ---
+    const pinterestTagIds = [
+        'TAG_ID_1',
+        'TAG_ID_2', 
+        'TAG_ID_3' 
+    ];
+
+    pinterestTagIds.forEach(id => { pintrk('load', id); });
+    pintrk('page'); 
+    </script>
+    <noscript>
+        <img height="1" width="1" style="display:none;" alt="" src="https://ct.pinterest.com/v3/?event=init&tid=TAG_ID_1&noscript=1" />
+    </noscript>
+    </head>
+<body class="antialiased overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+
+
+
+
+
+
+<nav class="fixed top-0 w-full z-50 glass-panel border-t-0 border-x-0 h-20 flex items-center transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 w-full flex justify-between items-center">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="location.reload()">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]"><i data-lucide="scan-face" class="w-5 h-5"></i></div>
+                <span class="font-heading font-bold text-xl tracking-wide">AuraMax</span>
+            </div>
+            
+            <div class="hidden md:flex gap-8 text-sm text-gray-400 font-medium">
+                <a href="#how-it-works" class="hover:text-white transition">Methodology</a>
+                <a href="#science" class="hover:text-white transition">Science</a>
+                <a href="#pricing" class="hover:text-white transition">Plans</a>
+            </div>
+
+            <button onclick="triggerUpload('elite')" class="group relative bg-white/10 hover:bg-indigo-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition border border-white/10 hover:border-indigo-500 overflow-hidden">
+                <div class="absolute inset-0 w-full h-full bg-indigo-600/50 blur-xl opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                <span class="relative flex items-center gap-2">
+                    Start Scan <i data-lucide="arrow-right" class="w-3 h-3 group-hover:translate-x-1 transition"></i>
+                </span>
+            </button>
+        </div>
+    </nav>
+
+
+
+
+
+
+
+<section class="min-h-screen flex items-center pt-20 relative overflow-hidden bg-[#0B0E14]">
+        <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        <div class="max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-16 items-center relative z-10">
+            <div class="text-left space-y-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10">
+                    <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
+                    <span class="text-[10px] font-bold tracking-[0.2em] text-indigo-300 uppercase">AI Intelligence V2.4 Active</span>
+                </div>
+                
+                <h1 class="text-5xl md:text-7xl font-heading font-bold leading-[1.1]">
+                    Your AI <br>
+                    <span class="gradient-text">Glow-Up Blueprint.</span>
+                </h1>
+                
+                <p class="text-gray-400 text-lg leading-relaxed max-w-lg">
+                    Upload a photo. Get a personalized improvement plan for style, grooming, skin, posture, and confidence — powered by aesthetic data analysis.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="triggerUpload('elite')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider glow-btn transition transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                        <i data-lucide="scan" class="w-4 h-4"></i> Analyze My Look
+                    </button>
+                    
+                    <a href="#how-it-works" class="px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider border border-white/10 hover:bg-white/5 transition text-center">
+                        How It Works
+                    </a>
+                </div>
+
+                <div class="pt-8 border-t border-white/5 flex flex-wrap gap-6 text-xs text-gray-500 font-medium">
+                    <div class="flex items-center gap-2"><i data-lucide="lock" class="w-3 h-3 text-indigo-400"></i> Private & Secure</div>
+                    <div class="flex items-center gap-2"><i data-lucide="brain-circuit" class="w-3 h-3 text-indigo-400"></i> AI-Powered Analysis</div>
+                    <div class="flex items-center gap-2"><i data-lucide="star" class="w-3 h-3 text-indigo-400"></i> Rated 4.8/5 by Users</div>
+                </div>
+            </div>
+
+            <div class="relative w-full aspect-square max-w-lg mx-auto lg:mr-0">
+                <div class="absolute inset-0 bg-indigo-500/10 rounded-full blur-[50px]"></div>
+                <div class="relative w-full h-full glass-panel rounded-3xl overflow-hidden scanner-container border-indigo-500/20 cursor-pointer" id="upload-section" onclick="triggerUpload('elite')">
+                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80" alt="Analysis Demo" class="w-full h-full object-cover opacity-60 grayscale mix-blend-luminosity">
+                    <div class="face-mesh-overlay absolute inset-0"></div>
+                    <div class="scan-line"></div>
+                    
+                    <div class="absolute top-6 left-6 flex flex-col gap-1">
+                        <div class="text-[10px] text-indigo-400 font-mono">SCANNING_GEOMETRY</div>
+                        <div class="w-24 h-1 bg-white/10 rounded-full overflow-hidden"><div class="w-2/3 h-full bg-indigo-500"></div></div>
+                    </div>
+                    
+                    <div class="absolute bottom-6 right-6 text-right">
+                        <div class="text-2xl font-bold font-heading text-white">98<span class="text-sm">%</span></div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Precision Score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+
+
+    <section id="how-it-works" class="py-24 bg-[#050505] relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-heading font-bold mb-4">Intelligence, Simplified.</h2>
+                <p class="text-gray-400">Advanced analysis without the complexity.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass-panel p-8 rounded-2xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 mb-6 border border-white/5"><i data-lucide="upload-cloud" class="w-6 h-6"></i></div>
+                    <h3 class="text-lg font-bold mb-3">1. Upload Your Photo</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">Your image is processed via end-to-end encryption. It is analyzed in real-time and never permanently stored.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 mb-6 border border-white/5"><i data-lucide="scan-face" class="w-6 h-6"></i></div>
+                    <h3 class="text-lg font-bold mb-3">2. AI Style Assessment</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">Our system evaluates grooming, symmetry, styling choices, skin presentation, and visual presence.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 mb-6 border border-white/5"><i data-lucide="file-check" class="w-6 h-6"></i></div>
+                    <h3 class="text-lg font-bold mb-3">3. Get Your Blueprint</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">Receive action steps for hair, skincare, posture, fashion, and confidence cues tailored to your unique features.</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <div class="inline-block px-4 py-2 bg-indigo-900/20 rounded-full border border-indigo-500/20 text-indigo-300 text-xs font-medium">
+                    We don’t judge. We guide improvement.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="science" class="py-24 bg-[#0B0E14] border-y border-white/5">
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div>
+                <div class="text-indigo-400 text-xs font-bold uppercase tracking-[0.2em] mb-4">Methodology</div>
+                <h2 class="text-4xl font-heading font-bold mb-6">Built on Data, <br> Not Opinions.</h2>
+                <p class="text-gray-400 mb-8 leading-relaxed">We utilize computer vision models trained on aesthetic principles to identify optimization opportunities in your presentation.</p>
+                
+                <ul class="space-y-4">
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-500 shrink-0"></i>
+                        <span><strong>Facial Proportions:</strong> Understanding visual balance and harmony.</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-500 shrink-0"></i>
+                        <span><strong>Skin Quality Indicators:</strong> Texture, clarity, and hydration analysis.</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-500 shrink-0"></i>
+                        <span><strong>Style Suitability:</strong> Hair and grooming matched to face shape.</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-sm text-gray-300">
+                        <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-500 shrink-0"></i>
+                        <span><strong>Presence Signals:</strong> Posture and body language assessment.</span>
+                    </li>
+                </ul>
+                
+                <div class="mt-8 pt-8 border-t border-white/5 text-[10px] text-gray-500">
+                    *Recommendations focus on grooming, styling, and healthy presentation — not unrealistic standards.
+                </div>
+            </div>
+            
+            <div class="relative">
+                <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-transparent rounded-2xl"></div>
+                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80" alt="Data Analysis" class="rounded-2xl border border-white/10 shadow-2xl grayscale opacity-70">
+                
+                <div class="absolute -bottom-6 -left-6 glass-panel p-4 rounded-xl flex items-center gap-4 animate-bounce" style="animation-duration: 3s;">
+                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="text-xs text-gray-400 uppercase">Potential Increase</div>
+                        <div class="text-white font-bold">+42% Visibility</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 bg-[#050505] overflow-hidden">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-heading font-bold mb-10">Your Personalized Dashboard</h2>
+            
+            <div class="relative glass-panel rounded-2xl overflow-hidden border border-white/10 p-1">
+                <div class="bg-[#0B0E14] rounded-xl p-8 grid md:grid-cols-2 gap-6 filter blur-sm select-none opacity-50">
+                    <div class="bg-white/5 p-6 rounded-lg h-32"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32 col-span-2"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32"></div>
+                </div>
+                
+                <div class="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40">
+                    <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mb-4 border border-white/20">
+                        <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Unlock Your Full Report</h3>
+                    <p class="text-sm text-gray-300 mb-6">Detailed breakdown available upon analysis completion.</p>
+                    <button onclick="document.getElementById('upload-input').click()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full font-bold text-sm uppercase tracking-wider transition">
+                        Get My Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-[#0a0f1c]">
+        <div class="max-w-3xl mx-auto px-6 text-center">
+            <div class="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-green-400">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h2 class="text-3xl font-heading font-bold mb-6">Your Privacy Comes First.</h2>
+            <div class="flex flex-wrap justify-center gap-4 md:gap-8 text-sm text-gray-400">
+                <div class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> Photos Encrypted</div>
+                <div class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> Auto-Deletion</div>
+                <div class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> No Public Rating</div>
+                <div class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> You Control Data</div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+
+
+    <section class="py-24 bg-[#050505] overflow-hidden">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-heading font-bold mb-10">Your Personalized Dashboard</h2>
+            
+            <div class="relative glass-panel rounded-2xl overflow-hidden border border-white/10 p-1 group hover:border-indigo-500/30 transition duration-500">
+                <div class="bg-[#0B0E14] rounded-xl p-8 grid md:grid-cols-2 gap-6 filter blur-sm select-none opacity-50 transform group-hover:scale-[1.01] transition duration-700">
+                    <div class="bg-white/5 p-6 rounded-lg h-32 border border-white/5"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32 border border-white/5"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32 col-span-2 border border-white/5"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32 border border-white/5"></div>
+                    <div class="bg-white/5 p-6 rounded-lg h-32 border border-white/5"></div>
+                </div>
+                
+                <div class="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/60 backdrop-blur-[2px]">
+                    <div class="w-20 h-20 bg-indigo-600/20 rounded-full flex items-center justify-center mb-6 border border-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.3)] animate-pulse">
+                        <i data-lucide="lock" class="w-8 h-8 text-indigo-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-heading font-bold text-white mb-2">Unlock Your Potential</h3>
+                    <p class="text-gray-300 text-sm mb-8 max-w-sm mx-auto">This level of insight is unavailable anywhere else. See exactly what is holding you back.</p>
+                    
+                    <button onclick="triggerUpload('elite')" class="bg-white text-black hover:bg-indigo-50 px-10 py-4 rounded-full font-bold text-sm uppercase tracking-wider transition transform hover:scale-105 shadow-xl flex items-center gap-2">
+                        <i data-lucide="unlock" class="w-4 h-4"></i> Reveal My Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <section class="py-24 bg-[#0B0E14] border-y border-white/5">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-3xl font-heading font-bold mb-12 text-center">Real Impact</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass-panel p-8 rounded-2xl">
+                    <div class="flex text-yellow-500 mb-4"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"I didn’t realize small grooming changes could make this much difference. The skincare advice was spot on."</p>
+                    <div class="text-xs text-gray-500 font-bold uppercase">James D.</div>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl">
+                    <div class="flex text-yellow-500 mb-4"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"It gave me direction instead of random advice. Helped me build confidence before job interviews."</p>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Michael R.</div>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl">
+                    <div class="flex text-yellow-500 mb-4"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-4">"Actionable and kind. I thought it would be a roast, but it was actually a constructive roadmap."</p>
+                    <div class="text-xs text-gray-500 font-bold uppercase">David S.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+<section id="pricing" class="py-24 bg-[#050505] relative overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-indigo-900/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+        <div class="max-w-4xl mx-auto px-6 relative z-10">
+            <h2 class="text-4xl font-heading font-bold mb-6 text-center">Unlock Your Potential</h2>
+            <p class="text-gray-400 text-center mb-16 max-w-lg mx-auto">Stop guessing. Get the exact data-driven roadmap to maximize your appearance.</p>
+            
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                
+                <div class="glass-panel p-8 rounded-3xl border-white/10 hover:border-white/20 transition group bg-[#08080a] relative order-2 md:order-1 scale-95 opacity-90 hover:opacity-100">
+                    <h3 class="text-2xl font-bold mb-2 text-white">Pro Blueprint</h3>
+                    <div class="flex items-baseline gap-1 mb-6">
+                        <span class="text-5xl font-bold text-white">$7</span>
+                        <span class="text-gray-500 line-through text-sm">$49</span>
+                    </div>
+                    
+                    <div class="space-y-5 mb-8">
+                        <div class="flex gap-3 items-start">
+                            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-gray-300 mt-0.5"><i data-lucide="scan-face" class="w-3 h-3"></i></div>
+                            <div>
+                                <span class="text-gray-300 font-bold block text-sm">Full Facial Analysis</span>
+                                <span class="text-gray-600 text-xs">20+ Key metrics</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-gray-300 mt-0.5"><i data-lucide="scissors" class="w-3 h-3"></i></div>
+                            <div>
+                                <span class="text-gray-300 font-bold block text-sm">Hairstyle Guide</span>
+                                <span class="text-gray-600 text-xs">Face-shape matched</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-gray-300 mt-0.5"><i data-lucide="droplets" class="w-3 h-3"></i></div>
+                            <div>
+                                <span class="text-gray-300 font-bold block text-sm">Skin Routine</span>
+                                <span class="text-gray-600 text-xs">Product list</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-gray-300 mt-0.5"><i data-lucide="file-down" class="w-3 h-3"></i></div>
+                            <div>
+                                <span class="text-gray-300 font-bold block text-sm">Instant PDF Report</span>
+                                <span class="text-gray-600 text-xs">Downloadable</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="triggerUpload('pro')" class="w-full border border-white/20 hover:bg-white/5 text-white py-4 rounded-xl text-sm font-bold transition">
+                        Select Basic Plan
+                    </button>
+                </div>
+
+                <div class="glass-panel p-8 rounded-3xl border-indigo-500 relative bg-[#0B0E14] shadow-[0_0_60px_rgba(99,102,241,0.4)] transform md:scale-110 z-10 order-1 md:order-2 ring-1 ring-indigo-400/50">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest px-6 py-1.5 rounded-full shadow-lg shadow-indigo-500/50 flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-3 h-3 fill-current"></i> AI Recommended
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold mb-2 text-white">Elite Optimization</h3>
+                    <div class="flex items-baseline gap-1 mb-6">
+                        <span class="text-5xl font-bold text-indigo-400">$29</span>
+                        <span class="text-gray-500 text-sm">/ Lifetime</span>
+                    </div>
+                    
+                    <div class="space-y-5 mb-8">
+                        <div class="flex gap-3 items-start">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+                            <span class="text-white font-bold text-sm">Everything in Pro included</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+                            <span class="text-white font-bold text-sm">Style & Fashion Presets <span class="text-indigo-400 text-xs font-normal">(Colors/Cuts)</span></span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+                            <span class="text-white font-bold text-sm">Body Posture Correction</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+                            <span class="text-white font-bold text-sm">Priority Processing <span class="text-indigo-400 text-xs font-normal">(Instant)</span></span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+                            <span class="text-white font-bold text-sm">Monthly Re-Scan <span class="text-indigo-400 text-xs font-normal">(Track Progress)</span></span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="triggerUpload('elite')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/40 transition flex items-center justify-center gap-2 transform hover:scale-[1.02]">
+                        Start Elite Transformation <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                    <p class="text-center text-[10px] text-gray-500 mt-4 flex justify-center items-center gap-2">
+                        <i data-lucide="lock" class="w-3 h-3"></i> One-time payment. Secure & Private.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+
+    <section class="py-24 bg-[#0B0E14]">
+        <div class="max-w-3xl mx-auto px-6">
+            <h2 class="text-2xl font-heading font-bold mb-10 text-center">Frequently Asked Questions</h2>
+            <div class="space-y-4">
+                <div class="glass-panel p-6 rounded-xl">
+                    <h4 class="font-bold mb-2">Do you store my photos?</h4>
+                    <p class="text-sm text-gray-400">No. Your photos are processed instantly for analysis and then permanently deleted from our servers. We prioritize privacy.</p>
+                </div>
+                <div class="glass-panel p-6 rounded-xl">
+                    <h4 class="font-bold mb-2">Is this a rating website?</h4>
+                    <p class="text-sm text-gray-400">No. We do not provide arbitrary number ratings to judge you. We provide data-driven insights to help you optimize your grooming and presentation.</p>
+                </div>
+                <div class="glass-panel p-6 rounded-xl">
+                    <h4 class="font-bold mb-2">Do you give medical advice?</h4>
+                    <p class="text-sm text-gray-400">No. Our recommendations are strictly aesthetic (grooming, style, posture). For medical skin conditions, please consult a dermatologist.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 border-t border-white/5 bg-[#050505] text-center">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-left">
+                <div class="font-heading font-bold text-xl mb-1">AuraMax</div>
+                <p class="text-xs text-gray-600">Advanced Aesthetic Intelligence.</p>
+            </div>
+            <div class="flex gap-6 text-xs text-gray-500">
+                <a href="privacy.html" class="hover:text-white transition">Privacy Policy</a>
+                <a href="terms.html" class="hover:text-white transition">Terms of Service</a>
+                <a href="security.html" class="hover:text-white transition">Data Security</a>
+                <a href="contact.html" class="hover:text-white transition">Contact</a>
+            </div>
+        </div>
+        <div class="mt-8 text-[10px] text-gray-700">
+            For personal development purposes only. Not medical advice. &copy; 2026 AuraMax AI.
+        </div>
+    </footer>
+
+
+
+
+
+
+
+<div id="upload-modal" class="fixed inset-0 bg-[#050505]/95 z-[90] hidden flex flex-col items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
+        <div class="relative w-full max-w-2xl glass-panel rounded-3xl p-1 border border-white/10 shadow-2xl">
+            
+            <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition"><i data-lucide="x" class="w-6 h-6"></i></button>
+
+            <div class="bg-[#0B0E14] rounded-2xl p-8 md:p-12 text-center">
+                
+                <div class="flex justify-center gap-6 mb-8 text-[10px] uppercase tracking-widest font-bold text-gray-500">
+                    <span class="flex items-center gap-1"><i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i> AES-256 Encrypted</span>
+                    <span class="flex items-center gap-1"><i data-lucide="eye-off" class="w-3 h-3 text-indigo-500"></i> 100% Private</span>
+                </div>
+
+                <h2 class="text-3xl md:text-4xl font-heading font-bold text-white mb-4">Initialize Analysis</h2>
+                <p class="text-gray-400 text-sm mb-10 max-w-md mx-auto">Upload a clear selfie to begin. Our AI needs a front-facing image to map your facial structure accurately.</p>
+
+                <div id="drop-area" class="drop-zone bg-white/5 rounded-2xl p-10 cursor-pointer group relative overflow-hidden" onclick="document.getElementById('real-file-input').click()">
+                    
+                    <div class="relative z-10">
+                        <div class="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300 border border-indigo-500/30">
+                            <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400"></i>
+                        </div>
+                        <h3 class="text-white font-bold text-lg mb-1">Click to Upload Photo</h3>
+                        <p class="text-gray-500 text-xs">or drag and drop here (JPG, PNG)</p>
+                    </div>
+                </div>
+
+                <input type="file" id="real-file-input" class="hidden" accept="image/*" onchange="validateAndProcess(this)">
+
+                <div id="upload-error" class="hidden mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold flex items-center justify-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i> <span id="error-text">No face detected. Please try a clearer photo.</span>
+                </div>
+
+                <p class="text-[10px] text-gray-600 mt-8">By uploading, you agree to our Terms. Photos are auto-deleted after processing.</p>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+<div id="processing-modal" class="fixed inset-0 bg-[#050505]/95 z-[100] hidden flex flex-col items-center justify-center p-4 backdrop-blur-xl transition-opacity duration-300">
+        
+        <div id="loading-state" class="text-center w-full max-w-md relative z-20">
+            <div class="w-24 h-24 mx-auto mb-8 relative">
+                <div class="absolute inset-0 border-2 border-white/5 rounded-full"></div>
+                <div class="absolute inset-0 border-2 border-t-indigo-500 border-r-indigo-500/50 rounded-full animate-spin"></div>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div class="font-mono text-xl font-bold text-white" id="percent">0%</div>
+                </div>
+            </div>
+            <h3 class="text-2xl font-bold mb-2 font-heading text-white tracking-wide">Analyzing Geometry...</h3>
+            <p class="text-gray-500 text-sm font-mono animate-pulse" id="status-text">Calibrating facial mesh...</p>
+        </div>
+
+        <div id="payment-state" class="hidden w-full max-w-md relative opacity-0 transform translate-y-4 transition-all duration-700 ease-out">
+            <div class="relative z-10 glass-panel p-1 rounded-2xl bg-gradient-to-b from-indigo-500/20 to-transparent border border-indigo-500/50 shadow-[0_0_80px_rgba(99,102,241,0.3)]">
+                <div class="bg-[#0B0E14] rounded-xl p-6 md:p-8 text-center overflow-hidden">
+                    
+                    <div class="inline-flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 border border-green-500/20">
+                        <i data-lucide="check-circle" class="w-3 h-3"></i> Analysis Complete
+                    </div>
+
+                    <h2 class="text-2xl font-heading font-bold text-white mb-2">Unlock Your Results</h2>
+                    <p class="text-gray-400 text-xs mb-6">Select your report tier to instantly access your 20-point analysis.</p>
+
+                    <div class="space-y-3 mb-8 text-left">
+                        <label class="block cursor-pointer group">
+                            <input type="radio" name="modal_plan" value="pro" class="hidden plan-radio" onchange="updateModalButton()">
+                            <div class="p-3 rounded-xl border border-white/10 bg-white/5 hover:border-white/20 transition flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center radio-circle"></div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Pro Blueprint</div>
+                                        <div class="text-[10px] text-gray-400">Basic Report & Skin Guide</div>
+                                    </div>
+                                </div>
+                                <div class="text-white font-bold">$7</div>
+                            </div>
+                        </label>
+
+                        <label class="block cursor-pointer group">
+                            <input type="radio" name="modal_plan" value="elite" class="hidden plan-radio" onchange="updateModalButton()">
+                            <div class="p-3 rounded-xl border border-indigo-500/50 bg-indigo-900/20 transition flex items-center justify-between relative overflow-hidden">
+                                <div class="absolute top-0 right-0 bg-indigo-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-bl-lg uppercase tracking-widest">Recommended</div>
+                                <div class="flex items-center gap-3 relative z-10">
+                                    <div class="w-4 h-4 rounded-full border border-indigo-400 flex items-center justify-center radio-circle"></div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Elite Optimization</div>
+                                        <div class="text-[10px] text-indigo-200">Full Access + Style Presets</div>
+                                    </div>
+                                </div>
+                                <div class="text-white font-bold relative z-10">$29</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <a id="payment-link" href="#" class="group relative block w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition overflow-hidden">
+                        <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                        <span class="relative flex items-center justify-center gap-2" id="pay-btn-text">
+                            Unlock Report <i data-lucide="lock-open" class="w-4 h-4"></i>
+                        </span>
+                    </a>
+
+                    <div class="mt-4 flex justify-center gap-4 text-[10px] text-gray-500">
+                        <span class="flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> Secure SSL</span>
+                        <span class="flex items-center gap-1"><i data-lucide="star" class="w-3 h-3"></i> Money-Back Guarantee</span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="location.reload()" class="absolute -bottom-12 left-1/2 -translate-x-1/2 text-xs text-gray-500 hover:text-white transition">Cancel</button>
+        </div>
+    </div>
+
+
+
+
+
+
+
+        <div id="payment-state" class="hidden w-full max-w-3xl relative opacity-0 transform translate-y-4 transition-all duration-700 ease-out">
+            
+            <div class="absolute inset-0 bg-[#0B0E14] rounded-2xl overflow-hidden filter blur-md opacity-50 scale-105 pointer-events-none">
+                <div class="p-6 grid grid-cols-2 gap-4 h-full">
+                    <div class="bg-white/10 rounded-lg h-32 w-full animate-pulse"></div>
+                    <div class="bg-white/10 rounded-lg h-32 w-full animate-pulse"></div>
+                    <div class="bg-white/10 rounded-lg h-48 w-full col-span-2 flex items-center justify-center">
+                        <div class="w-full h-2 bg-white/20 rounded-full mx-8"></div>
+                    </div>
+                    <div class="bg-white/10 rounded-lg h-10 w-full col-span-2"></div>
+                </div>
+            </div>
+
+            <div class="relative z-10 glass-panel p-1 rounded-2xl bg-gradient-to-b from-indigo-500/20 to-transparent border border-indigo-500/50 shadow-[0_0_80px_rgba(99,102,241,0.3)] max-w-md mx-auto">
+                <div class="bg-[#0B0E14] rounded-xl p-8 text-center overflow-hidden">
+                    
+                    <div class="inline-flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6 border border-green-500/20">
+                        <i data-lucide="check-circle" class="w-3 h-3"></i> Analysis Complete
+                    </div>
+
+                    <h2 class="text-3xl font-heading font-bold text-white mb-2">Results Ready</h2>
+                    <p class="text-gray-400 text-sm mb-6">We have generated your personalized <span class="text-white font-bold" id="selected-plan-name">Pro Blueprint</span>.</p>
+
+                    <div class="flex justify-center items-baseline gap-1 mb-8">
+                        <span class="text-4xl font-bold text-white" id="selected-plan-price">$7</span>
+                        <span class="text-sm text-gray-500">USD</span>
+                    </div>
+
+                    <a id="payment-link" href="#" class="group relative block w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition overflow-hidden">
+                        <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                        <span class="relative flex items-center justify-center gap-2">
+                            Unlock Full Report <i data-lucide="lock-open" class="w-4 h-4"></i>
+                        </span>
+                    </a>
+
+                    <div class="mt-4 flex justify-center gap-4 text-[10px] text-gray-500">
+                        <span class="flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> Secure SSL</span>
+                        <span class="flex items-center gap-1"><i data-lucide="star" class="w-3 h-3"></i> Money-Back Guarantee</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="location.reload()" class="absolute -bottom-12 left-1/2 -translate-x-1/2 text-xs text-gray-500 hover:text-white transition">Cancel</button>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+<script>
+    lucide.createIcons();
+    const LINKS = {
+        pro: "https://buy.stripe.com/fZubJ07Vp0xBalwbDNdby05",
+        elite: "https://buy.stripe.com/dRmcN4a3x3JN8doePZdby06"
+    };
+
+    let selectedPlan = 'elite'; 
+    let faceModel = null;
+
+    async function loadFaceModel() {
+        try { faceModel = await blazeface.load(); } catch(e){ console.log("AI Init Error"); }
+    }
+    loadFaceModel();
+
+    function triggerUpload(plan) {
+        selectedPlan = plan;
+        document.getElementById('upload-modal').classList.remove('hidden');
+    }
+
+    function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
+
+    // Face Detection and Process
+    async function validateAndProcess(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const dropZone = document.getElementById('drop-area');
+        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Detecting Face...</h3></div>`;
+
+        try {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            await img.decode();
+            
+            if(!faceModel) await loadFaceModel();
+            const preds = await faceModel.estimateFaces(img, false);
+
+            if (preds.length > 0) {
+                closeUploadModal();
+                runRealAnalysis(file);
+            } else {
+                alert("No face detected. Please use a clearer photo.");
+                location.reload();
+            }
+        } catch (e) {
+            runRealAnalysis(file); // Fallback
+        }
+    }
+
+    async function runRealAnalysis(file) {
+        document.getElementById('processing-modal').classList.remove('hidden');
+        const pct = document.getElementById('percent');
+        const status = document.getElementById('status-text');
+
+        // Progress Animation
+        let p = 0;
+        const interval = setInterval(() => {
+            if(p < 90) p += 2;
+            pct.innerText = p + '%';
+        }, 200);
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            try {
+                const response = await fetch('/.netlify/functions/analyze', {
+                    method: 'POST',
+                    body: JSON.stringify({ image: reader.result, plan: selectedPlan })
+                });
+                const data = await response.json();
+                
+                // Store results
+                localStorage.setItem('auraMaxResults', JSON.stringify(data));
+                localStorage.setItem('userPlan', selectedPlan);
+
+                clearInterval(interval);
+                pct.innerText = '100%';
+                setTimeout(() => showPaymentSelection(), 500);
+            } catch (err) {
+                alert("Analysis connection failed. Please try again.");
+            }
+        };
+    }
+
+    function showPaymentSelection() {
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('payment-state').classList.remove('hidden');
+        
+        // Ensure the radio buttons inside the modal match what they clicked
+        const radios = document.getElementsByName('modal_plan');
+        radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
+        updateModalButton();
+    }
+
+    function updateModalButton() {
+        const radios = document.getElementsByName('modal_plan');
+        let val = 'pro';
+        radios.forEach(r => { if(r.checked) val = r.value; });
+        
+        const btn = document.getElementById('payment-link');
+        const txt = document.getElementById('pay-btn-text');
+        
+        btn.href = LINKS[val];
+        txt.innerHTML = val === 'pro' ? `Unlock Pro Report ($7)` : `Start Elite Access ($29)`;
+        // Save plan choice again in case they changed it in the modal
+        localStorage.setItem('userPlan', val); 
+    }
+
+    // Drag and Drop support
+    const da = document.getElementById('drop-area');
+    da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
+    da.addEventListener('dragleave', () => da.classList.remove('drag-over'));
+    da.addEventListener('drop', e => {
+        e.preventDefault();
+        const files = e.dataTransfer.files;
+        document.getElementById('real-file-input').files = files;
+        validateAndProcess({files});
+    });
+</script>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Security | AuraMax</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #050505; color: #cbd5e1; font-family: sans-serif; }
+        .glass-container { max-width: 800px; margin: 4rem auto; padding: 3rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; }
+    </style>
+</head>
+<body class="p-6">
+    <div class="glass-container">
+        <a href="index.html" class="text-indigo-400 hover:text-white text-sm mb-8 block">← Back to Home</a>
+        
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-500"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+            <h1 class="text-3xl font-bold text-white m-0">Data Security</h1>
+        </div>
+
+        <p class="text-lg leading-relaxed mb-8">At AuraMax, we implement security measures comparable to modern banking and SaaS platforms. Your trust is our asset.</p>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-12">
+            <div class="bg-white/5 p-6 rounded-xl border border-white/5">
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4 text-indigo-400"></i> Encryption</h3>
+                <p class="text-sm">We use end-to-end encryption (TLS 1.3) during all data transfers to ensure your uploads cannot be intercepted.</p>
+            </div>
+            <div class="bg-white/5 p-6 rounded-xl border border-white/5">
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4 text-indigo-400"></i> Auto-Deletion</h3>
+                <p class="text-sm">Analysis images are processed in ephemeral containers and automatically deleted. We do not build databases of user faces.</p>
+            </div>
+            <div class="bg-white/5 p-6 rounded-xl border border-white/5">
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2"><i data-lucide="server" class="w-4 h-4 text-indigo-400"></i> Secure Cloud</h3>
+                <p class="text-sm">Our infrastructure is hosted on enterprise-grade cloud providers with limited internal access controls.</p>
+            </div>
+            <div class="bg-white/5 p-6 rounded-xl border border-white/5">
+                <h3 class="text-white font-bold mb-2 flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4 text-indigo-400"></i> Payment Safety</h3>
+                <p class="text-sm">We do not store credit card numbers. All payments are handled by Stripe/Chargily, complying with PCI-DSS Level 1 standards.</p>
+            </div>
+        </div>
+
+        <h2 class="text-xl font-bold text-white mb-4">Breach Protocol</h2>
+        <p class="mb-4">In the unlikely event of a security issue, we are committed to:</p>
+        <ul class="list-disc pl-6 space-y-2 mb-8">
+            <li>Investigating immediately upon detection.</li>
+            <li>Containing the issue to prevent data loss.</li>
+            <li>Notifying affected users transparently if required by law.</li>
+        </ul>
+
+        <p class="text-sm text-gray-500 border-t border-white/10 pt-6">Last Security Audit: February 2026</p>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
