@@ -1,61 +1,206 @@
-<script>
-    async function runPostPaymentAI() {
-        // 1. Get the data we saved on index.html
-        const savedImage = localStorage.getItem('pendingScanImage');
-        const userPlan = localStorage.getItem('userPlan');
-
-        if (!savedImage) {
-            document.getElementById('summary-display').innerText = "No image found. Please return home and scan again.";
-            return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Optimization Report | AuraMax</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@500;700&display=swap');
+        
+        body { background-color: #050505; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-heading { font-family: 'Space Grotesk', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); }
+        .gradient-text { background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        @keyframes pulse-border {
+            0% { border-color: rgba(99, 102, 241, 0.2); }
+            50% { border-color: rgba(99, 102, 241, 0.6); }
+            100% { border-color: rgba(99, 102, 241, 0.2); }
         }
+        .analyzing-box { animation: pulse-border 2s infinite; }
+    </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen flex flex-col items-center">
 
-        try {
-            // 2. Call the AI now
-            const response = await fetch('/.netlify/functions/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: savedImage, plan: userPlan })
-            });
+    <div id="loading-results" class="w-full max-w-2xl text-center py-20">
+        <div class="relative w-24 h-24 mx-auto mb-8">
+            <div class="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-t-indigo-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i data-lucide="brain-circuit" class="w-8 h-8 text-indigo-400"></i>
+            </div>
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-4">Generating Your Blueprint</h2>
+        <p class="text-gray-400 animate-pulse" id="loading-status">Our AI is analyzing your facial architecture...</p>
+    </div>
 
-            const data = await response.json();
+    <div id="results-content" class="hidden w-full max-w-5xl">
+        <header class="mb-12 text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
+                <span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                <span class="text-[10px] font-bold text-green-400 uppercase tracking-widest">Analysis Complete</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-white">Your Optimization <span class="gradient-text">Report</span></h1>
+            <p class="text-gray-500 mt-2">Data-driven strategy for your unique features.</p>
+        </header>
 
-            // 3. Fill the standard fields
-            document.getElementById('shape-display').innerText = data.face_shape;
-            document.getElementById('score-display').innerText = "Ready";
-            document.getElementById('hair-display').innerText = data.hair;
-            document.getElementById('summary-display').innerText = data.top_3_checklist.join(" • ");
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="results-grid">
+            
+            <div class="glass p-8 rounded-3xl analyzing-box">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400"><i data-lucide="layout-grid" class="w-5 h-5"></i></div>
+                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Face Geometry</span>
+                </div>
+                <div class="text-2xl font-bold text-white mb-2" id="shape-display">Analyzing...</div>
+                <p class="text-sm text-gray-400">Determined category based on jawline-to-cheekbone ratios.</p>
+            </div>
 
-            // 4. If Elite ($29), show the extra advanced sections
-            if (userPlan === 'elite') {
-                const resultsContainer = document.querySelector('.grid');
-                
-                // Add Archetype Section
-                resultsContainer.innerHTML += `
-                    <div class="glass p-6 rounded-2xl border-indigo-500/50 bg-indigo-500/5">
-                        <div class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-2">Elite Archetype</div>
-                        <div class="text-xl font-bold text-white">${data.archetype}</div>
-                    </div>
-                    <div class="glass p-6 rounded-2xl border-indigo-500/50 bg-indigo-500/5">
-                        <div class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-2">Presence & Confidence</div>
-                        <div class="text-sm text-gray-300 leading-relaxed">${data.presence_coaching}</div>
-                    </div>
-                    <div class="glass p-6 rounded-2xl border-indigo-500/50 bg-indigo-500/5 col-span-full">
-                        <div class="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-2">Priority Optimization Map</div>
-                        <div class="grid md:grid-cols-3 gap-4 mt-4">
-                            <div><span class="text-green-400 text-xs font-bold uppercase">Quick Wins:</span><p class="text-xs text-gray-400 mt-1">${data.priority_map.quick_wins.join(", ")}</p></div>
-                            <div><span class="text-indigo-400 text-xs font-bold uppercase">Upgrades:</span><p class="text-xs text-gray-400 mt-1">${data.priority_map.medium_upgrades.join(", ")}</p></div>
-                            <div><span class="text-red-400 text-xs font-bold uppercase">High Impact:</span><p class="text-xs text-gray-400 mt-1">${data.priority_map.high_effort_high_impact.join(", ")}</p></div>
-                        </div>
-                    </div>
-                `;
+            <div class="glass p-8 rounded-3xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400"><i data-lucide="scissors" class="w-5 h-5"></i></div>
+                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Hair Direction</span>
+                </div>
+                <div class="text-lg font-bold text-white mb-2" id="hair-display">Analyzing...</div>
+                <p class="text-xs text-gray-400" id="hair-desc">Ideal volume and length placement for symmetry.</p>
+            </div>
+
+            <div class="glass p-8 rounded-3xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400"><i data-lucide="droplets" class="w-5 h-5"></i></div>
+                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Skin Condition</span>
+                </div>
+                <div class="text-lg font-bold text-white mb-2" id="skin-display">Analyzing...</div>
+                <p class="text-xs text-gray-400">Observable presentation signals and texture cues.</p>
+            </div>
+
+            <div class="glass p-8 rounded-3xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400"><i data-lucide="user-check" class="w-5 h-5"></i></div>
+                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Grooming</span>
+                </div>
+                <div class="text-sm text-gray-300 leading-relaxed" id="grooming-display">Analyzing...</div>
+            </div>
+
+            <div class="glass p-8 rounded-3xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400"><i data-lucide="shirt" class="w-5 h-5"></i></div>
+                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Style Logic</span>
+                </div>
+                <div class="text-sm text-gray-300 leading-relaxed" id="style-display">Analyzing...</div>
+            </div>
+
+            <div class="glass p-8 rounded-3xl border-white/20 bg-white/5 lg:col-span-1">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-green-500/10 rounded-lg text-green-400"><i data-lucide="list-checks" class="w-5 h-5"></i></div>
+                    <span class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">High Impact Wins</span>
+                </div>
+                <ul class="space-y-4" id="top-3-list">
+                    </ul>
+            </div>
+
+            </div>
+
+        <footer class="mt-16 text-center border-t border-white/5 pt-12 pb-20">
+            <button onclick="window.print()" class="text-xs font-bold text-gray-500 hover:text-white transition uppercase tracking-widest flex items-center gap-2 mx-auto">
+                <i data-lucide="download" class="w-4 h-4"></i> Save Report as PDF
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        async function runFinalAuraAnalysis() {
+            const savedImage = localStorage.getItem('pendingScanImage');
+            const userPlan = localStorage.getItem('userPlan');
+
+            if (!savedImage) {
+                document.getElementById('loading-status').innerHTML = "Error: No session found. <a href='index.html' class='text-indigo-400 underline'>Go back</a>";
+                return;
             }
 
-        } catch (error) {
-            console.error("AI Error:", error);
-            document.getElementById('summary-display').innerText = "An error occurred generating your report. Refresh to try again.";
-        }
-    }
+            try {
+                // THE REAL AI CALL
+                const response = await fetch('/.netlify/functions/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: savedImage, plan: userPlan })
+                });
 
-    // Run automatically when the page loads
-    window.onload = runPostPaymentAI;
-</script>
+                const data = await response.json();
+
+                // 1. Fill basic data
+                document.getElementById('shape-display').innerText = data.face_shape;
+                document.getElementById('hair-display').innerText = data.hair;
+                document.getElementById('skin-display').innerText = data.skin;
+                document.getElementById('grooming-display').innerText = data.grooming;
+                document.getElementById('style-display').innerText = data.style;
+
+                // Build Top 3 Checklist
+                const list = document.getElementById('top-3-list');
+                data.top_3_checklist.forEach(item => {
+                    list.innerHTML += `<li class="flex gap-3 text-sm text-white font-medium items-start">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i>
+                        <span>${item}</span>
+                    </li>`;
+                });
+
+                // 2. If Elite tier, inject the extra premium sections
+                if (userPlan === 'elite') {
+                    const grid = document.getElementById('results-grid');
+                    
+                    grid.innerHTML += `
+                        <div class="glass p-8 rounded-3xl border-indigo-500 bg-indigo-500/5 lg:col-span-2">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-400"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+                                <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-widest text-white">Aesthetic Archetype</span>
+                            </div>
+                            <div class="text-3xl font-bold text-white mb-4">${data.archetype}</div>
+                            <div class="text-gray-400 text-sm leading-relaxed">Color Strategy: ${data.color_science}</div>
+                        </div>
+
+                        <div class="glass p-8 rounded-3xl border-indigo-500 bg-indigo-500/5">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="p-2 bg-indigo-500/20 rounded-lg text-indigo-400"><i data-lucide="zap" class="w-5 h-5"></i></div>
+                                <span class="text-[11px] font-bold text-indigo-300 uppercase tracking-widest text-white">Presence Coaching</span>
+                            </div>
+                            <p class="text-sm text-gray-300 leading-relaxed">${data.presence_coaching}</p>
+                        </div>
+
+                        <div class="glass p-8 rounded-3xl border-indigo-500/30 bg-indigo-500/5 col-span-full">
+                            <div class="text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-8 text-center">Elite Optimization Priority Map</div>
+                            <div class="grid md:grid-cols-3 gap-8">
+                                <div class="p-6 rounded-2xl bg-black/40 border border-green-500/20">
+                                    <div class="text-green-400 text-xs font-bold uppercase mb-4 tracking-tighter">Quick Wins</div>
+                                    <ul class="text-xs text-gray-400 space-y-2">${data.priority_map.quick_wins.map(i => `• ${i}`).join('<br>')}</ul>
+                                </div>
+                                <div class="p-6 rounded-2xl bg-black/40 border border-indigo-500/20">
+                                    <div class="text-indigo-400 text-xs font-bold uppercase mb-4 tracking-tighter">Medium Upgrades</div>
+                                    <ul class="text-xs text-gray-400 space-y-2">${data.priority_map.medium_upgrades.map(i => `• ${i}`).join('<br>')}</ul>
+                                </div>
+                                <div class="p-6 rounded-2xl bg-black/40 border border-red-500/20">
+                                    <div class="text-red-400 text-xs font-bold uppercase mb-4 tracking-tighter">High Impact</div>
+                                    <ul class="text-xs text-gray-400 space-y-2">${data.priority_map.high_effort_high_impact.map(i => `• ${i}`).join('<br>')}</ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Finalize UI
+                document.getElementById('loading-results').classList.add('hidden');
+                document.getElementById('results-content').classList.remove('hidden');
+                lucide.createIcons();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading-status').innerText = "Connection error. Please refresh the page.";
+            }
+        }
+
+        window.onload = runFinalAuraAnalysis;
+    </script>
+</body>
+</html>

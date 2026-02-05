@@ -8,35 +8,15 @@ exports.handler = async (event) => {
     const { image, plan } = JSON.parse(event.body);
 
     const prompts = {
-      pro: `You are a professional image and grooming advisor. Provide a practical FOUNDATION improvement report based only on visible presentation factors. Avoid assumptions about medical conditions or exact measurements. Be encouraging, neutral, and improvement-focused. 
-      Analyze: 1. General face shape category 2. Hair volume distribution and ideal length placement 3. Visible skin presentation signals 4. Grooming direction 5. Clothing fit guidance 6. Posture and head positioning 7. The 3 highest-impact visual upgrades.
+      pro: `You are a professional image and grooming advisor. Provide a practical FOUNDATION improvement report based only on visible presentation factors. Avoid assumptions about medical conditions or exact measurements. Be encouraging, neutral, and improvement-focused.
+      Analyze the person in the image for: 1. Face shape category 2. Hair volume/length 3. Skin presentation (non-medical) 4. Grooming direction 5. Clothing fit 6. Posture 7. Top 3 highest-impact upgrades.
       Return ONLY valid JSON:
-      {
-        "face_shape": "",
-        "hair": "",
-        "skin": "",
-        "grooming": "",
-        "style": "",
-        "posture": "",
-        "top_3_checklist": ["", "", ""]
-      }`,
+      {"face_shape":"","hair":"","skin":"","grooming":"","style":"","posture":"","top_3_checklist":["","",""]}`,
             
-      elite: `You are an advanced personal presentation and style optimization consultant. Provide a strategic, high-level visual optimization system based only on observable presentation traits. Avoid medical claims or exact anatomical measurements. Focus on styling, grooming, posture, and visual presence.
-      Analyze: 1. Visual facial balance 2. Jawline and chin presentation 3. Aesthetic Archetype 4. Advanced color strategy 5. Precision hairstyle strategy 6. Grooming refinement 7. Posture 8. Presence & confidence cues 9. Optimization Priority Map (Quick Wins, Medium, High-Impact) 10. Top 3 most impactful changes.
+      elite: `You are an advanced personal presentation and style optimization consultant. Provide a strategic, high-level visual optimization system based only on observable presentation traits. Avoid medical claims or anatomical measurements.
+      Analyze for: 1. Visual facial balance 2. Jawline/chin framing 3. Aesthetic Archetype (Sharp & Defined, Soft & Balanced, Classic Professional, or Modern Casual) 4. Advanced color strategy 5. Precision hairstyle 6. Grooming refinement 7. Posture 8. Presence & confidence 9. Optimization Priority Map (Quick Wins, Medium Upgrades, High-Effort) 10. Top 3 changes.
       Return ONLY valid JSON:
-      {
-        "face_shape": "",
-        "hair": "",
-        "skin": "",
-        "grooming": "",
-        "style": "",
-        "posture": "",
-        "archetype": "",
-        "color_science": "",
-        "priority_map": { "quick_wins": [], "medium_upgrades": [], "high_effort_high_impact": [] },
-        "presence_coaching": "",
-        "top_3_checklist": ["", "", ""]
-      }`
+      {"face_shape":"","hair":"","skin":"","grooming":"","style":"","posture":"","archetype":"","color_science":"","priority_map":{"quick_wins":[],"medium_upgrades":[],"high_effort_high_impact":[]},"presence_coaching":"","top_3_checklist":["","",""]}`
     };
 
     const response = await openai.chat.completions.create({
