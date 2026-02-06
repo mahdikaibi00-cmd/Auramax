@@ -1,6 +1,8 @@
 const OpenAI = require("openai");
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY, // This will now use your ApiFree key
+  baseURL: "https://api.apifree.ai/v1" // This points to the free server
+});
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
