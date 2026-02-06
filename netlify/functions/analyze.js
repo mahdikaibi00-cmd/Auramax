@@ -1,48 +1,53 @@
 exports.handler = async (event) => {
-  // 1. Allow only POST
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
+  if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
   try {
     const { image, plan } = JSON.parse(event.body);
-    console.log("Processing Plan:", plan); // Debug Log
 
-    // 2. YOUR EXACT PROMPTS
-    const prompts = {
-      pro: `You are a senior personal presentation consultant. Deliver a FOUNDATION glow-up report. Tone: Professional, Direct.
-      Return ONLY valid JSON. No markdown. Structure:
-      {
-        "presentation_score": 7.5,
-        "summary": "Strong base features, but grooming lacks definition.",
-        "face_shape": { "type": "Oval", "insight": "Balanced proportions, versatile styling." },
-        "hair": { "strategy": "Increase volume on top", "avoid": "Buzz cuts" },
-        "skin": { "signals": "Minor texture", "improvement_direction": "Hydration focus needed" },
-        "grooming": { "recommendation": "Heavy Stubble", "maintenance": "Trim every 3 days" },
-        "style_posture": { "style_direction": "Structured collars", "posture_tip": "Chin up" },
-        "top_3_actions": ["Tighten hair sides", "Start retinol", "Wear stiff fabrics"],
-        "expert_note": "Small changes compound quickly."
-      }`,
-            
-      elite: `You are an elite aesthetic strategist. Deliver a DEEP visual optimization report. Tone: Authoritative, Premium.
-      Return ONLY valid JSON. No markdown. Structure:
-      {
-        "optimization_score": 8.2,
-        "summary": "High potential. Alignment needed between grooming and structure.",
-        "facial_balance": { "insight": "Lower third lacks visual weight", "enhancement_strategy": "Grow beard to widen jaw" },
-        "jawline_strategy": "Create angularity through sharp grooming lines.",
-        "archetype": { "type": "Modern Casual", "description": "Approachable yet refined.", "optimize_for": "Soft textures", "avoid": "Over-formal suits" },
-        "hairstyle_map": { "length_zones": "Short sides, medium top", "volume_strategy": "Vertical lift", "framing": "Keep forehead clear" },
-        "color_science": { "undertone": "Cool Winter", "contrast_level": "High Contrast", "best_colors": "Navy, Black", "avoid_colors": "Beige" },
-        "style_system": { "cuts": "Slim fit", "fabrics": "Heavy cotton", "layering": "Essential", "consistency_rule": "Always wear a watch" },
-        "presence_coaching": { "eye_contact": "Hold 3 seconds", "smile": "Smirk over full smile", "head_position": "Level chin" },
-        "priority_map": { "quick_wins": ["Haircut"], "medium_upgrades": ["Skin routine"], "high_effort_high_impact": ["Neck training"] },
-        "top_3_actions": ["Fade the sides", "Whitening strips", "Monochrome outfits"],
-        "final_note": "Identity alignment is key to automatic confidence."
-      }`
-    };
+    // --- 1. DEFINE PROMPTS EXACTLY AS REQUESTED ---
+    const PRO_PROMPT = `
+    You are a senior personal presentation and grooming consultant.
+    Your task is to deliver a FOUNDATION glow-up report that provides clarity, confidence, and immediate direction.
+    Tone: Professional, Supportive, Clear, Direct, Premium.
+    Do NOT mention AI, attractiveness ratings, or medical advice.
+    
+    Return ONLY valid JSON with this exact structure:
+    {
+      "presentation_score": number (0–10, one decimal),
+      "face_shape": { "type": "String", "insight": "String" },
+      "hair": { "strategy": "String", "avoid": "String" },
+      "skin": { "signals": "String", "improvement_direction": "String" },
+      "grooming": { "recommendation": "String", "maintenance": "String" },
+      "style_posture": { "style_direction": "String", "posture_tip": "String" },
+      "top_3_actions": ["String", "String", "String"],
+      "expert_note": "String"
+    }`;
 
-    // 3. Call APIFree (Native Fetch)
+    const ELITE_PROMPT = `
+    You are an elite aesthetic optimization strategist specializing in visual presence and confidence signaling.
+    You work with high-achievers and deliver system-level upgrades.
+    Tone: Authoritative, Strategic, Premium, Precise.
+    Avoid medical claims or ratings.
+    
+    Return ONLY valid JSON with this exact structure:
+    {
+      "optimization_score": number (0–10, one decimal),
+      "facial_balance": { "insight": "String", "enhancement_strategy": "String" },
+      "jawline_strategy": "String",
+      "archetype": { "type": "String", "description": "String", "optimize_for": "String", "avoid": "String" },
+      "hairstyle_map": { "length_zones": "String", "volume_strategy": "String", "framing": "String" },
+      "color_science": { "undertone": "String", "contrast_level": "String", "best_colors": "String", "avoid_colors": "String" },
+      "style_system": { "cuts": "String", "fabrics": "String", "layering": "String", "consistency_rule": "String" },
+      "presence_coaching": { "eye_contact": "String", "smile": "String", "head_position": "String" },
+      "priority_map": { "quick_wins": ["String"], "medium_upgrades": ["String"], "high_effort_high_impact": ["String"] },
+      "top_3_actions": ["String", "String", "String"],
+      "final_note": "String"
+    }`;
+
+    // Select Prompt
+    const systemPrompt = plan === 'elite' ? ELITE_PROMPT : PRO_PROMPT;
+
+    // --- 2. CALL API ---
     const response = await fetch("https://api.apifree.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -50,11 +55,14 @@ exports.handler = async (event) => {
             "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-            model: "openai/gpt-4o",
-            messages: [{ role: "user", content: [
-                { type: "text", text: prompts[plan] || prompts.pro },
+            model: "gpt-4o", // Ensure your provider supports this, otherwise use gpt-4-turbo
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: [
+                { type: "text", text: "Analyze this image and generate the report JSON." },
                 { type: "image_url", image_url: { url: image } }
-            ]}],
+              ]}
+            ],
             response_format: { type: "json_object" },
             max_tokens: 4096,
             temperature: 0.7
@@ -62,16 +70,20 @@ exports.handler = async (event) => {
     });
 
     if (!response.ok) {
-        const txt = await response.text();
-        console.error("API Error:", txt);
-        return { statusCode: response.status, body: `API Provider Error: ${txt}` };
+       const err = await response.text();
+       throw new Error(`API Error: ${response.status} - ${err}`);
     }
-
+    
     const data = await response.json();
-    return { statusCode: 200, body: data.choices[0].message.content };
+    let content = data.choices[0].message.content;
+
+    // Clean Markdown if present (Safety net)
+    content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    return { statusCode: 200, body: content };
 
   } catch (error) {
-    console.error("Function Error:", error);
+    console.error("Backend Error:", error);
     return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
 };

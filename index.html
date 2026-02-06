@@ -12,6 +12,26 @@
     <style>
 
 
+/* --- PREMIUM APPLE-STYLE SHAKE --- */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.shake-active {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    border-color: #ef4444 !important; /* Red-500 */
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Smooth transition for the reset */
+#drop-area {
+    transition: all 0.3s ease;
+}
+
+
+
 /* PDF PRINT STYLES */
         @media print {
             body * { visibility: hidden; }
@@ -321,48 +341,115 @@
     let selectedPlan = 'elite'; 
     let faceModel = null;
 
+    // 1. Initialize Face AI
     async function loadFaceModel() {
-        try { faceModel = await blazeface.load(); } catch(e){ console.log("AI Init Error"); }
+        try { 
+            // Load the model silently in the background
+            faceModel = await blazeface.load(); 
+            console.log("AI Ready");
+        } catch(e){ 
+            console.log("AI Init Error"); 
+        }
     }
     loadFaceModel();
 
+    // 2. Modal Controls
     function triggerUpload(plan) {
         selectedPlan = plan;
         document.getElementById('upload-modal').classList.remove('hidden');
         document.getElementById('upload-error').classList.add('hidden');
+        // Reset UI state
+        const dropZone = document.getElementById('drop-area');
+        dropZone.classList.remove('border-red-500', 'bg-red-500/10');
+        dropZone.innerHTML = `
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full border border-dashed border-gray-600 flex items-center justify-center mb-3 text-gray-400 group-hover:text-white group-hover:border-white transition">
+                    <span class="text-xl font-light">+</span>
+                </div>
+                <h3 class="text-white font-bold text-sm">Upload Photo</h3>
+                <p class="text-gray-600 text-[10px] mt-1">JPG or PNG</p>
+            </div>`;
     }
 
     function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
 
-    // --- 1. FACE DETECTION (FAIL-OPEN) ---
+    // 3. Strict Face Detection & Processing
     async function validateAndProcess(input) {
         const file = input.files[0];
         if (!file) return;
 
         const dropZone = document.getElementById('drop-area');
-        dropZone.innerHTML = `<div class="animate-pulse flex flex-col items-center"><h3 class="text-indigo-400 font-mono text-sm">SCANNING...</h3></div>`;
+        const originalContent = dropZone.innerHTML;
         
+        // Show Scanning State
+        dropZone.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-4">
+                <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <h3 class="text-indigo-400 font-mono text-xs tracking-widest animate-pulse">SCANNING FACE ID...</h3>
+            </div>`;
+        document.getElementById('upload-error').classList.add('hidden');
+
         try {
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
-            if(faceModel) {
-                // Try to detect, but proceed even if it fails or finds 0 faces
-                try { await faceModel.estimateFaces(img, false); } catch(e) {}
-            }
+            // Ensure model is loaded
+            if(!faceModel) await loadFaceModel();
             
-            // ALWAYS PROCEED
-            closeUploadModal();
-            runRealAnalysis(file);
+            // --- STRICT CHECK ---
+            // estimateFaces(image, returnTensors?)
+            const preds = await faceModel.estimateFaces(img, false);
+            console.log("Faces detected:", preds.length);
+
+            if (preds.length > 0) {
+                // SUCCESS: Face Found
+                closeUploadModal();
+                runRealAnalysis(file);
+            } else {
+                // FAIL: No Face Found -> Trigger iPhone Shake
+                throw new Error("No Face");
+            }
 
         } catch (e) {
-            closeUploadModal();
-            runRealAnalysis(file); 
+            console.error("Detection Failed", e);
+            
+            // 1. Reset Content
+            dropZone.innerHTML = `
+                <div class="flex flex-col items-center text-red-400">
+                    <i data-lucide="x-circle" class="w-10 h-10 mb-2"></i>
+                    <h3 class="font-bold text-sm">No Face Detected</h3>
+                    <p class="text-[10px] opacity-75">Please use a clear selfie.</p>
+                </div>`;
+            lucide.createIcons();
+            
+            // 2. Add Error Styling
+            dropZone.classList.add('border-red-500', 'bg-red-500/10');
+            
+            // 3. Trigger "iPhone Shake" Animation
+            dropZone.classList.remove('shake'); // Reset if already there
+            void dropZone.offsetWidth; // Force reflow
+            dropZone.classList.add('shake');
+            
+            // 4. Reset Input so they can try again
+            input.value = ''; 
+            
+            // 5. Restore normal state after 2 seconds
+            setTimeout(() => {
+                dropZone.classList.remove('border-red-500', 'bg-red-500/10', 'shake');
+                dropZone.innerHTML = `
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full border border-dashed border-gray-600 flex items-center justify-center mb-3 text-gray-400 group-hover:text-white group-hover:border-white transition">
+                            <span class="text-xl font-light">+</span>
+                        </div>
+                        <h3 class="text-white font-bold text-sm">Try Again</h3>
+                        <p class="text-gray-600 text-[10px] mt-1">JPG or PNG</p>
+                    </div>`;
+            }, 2500);
         }
     }
 
-    // --- 2. FAKE ANALYSIS & SAVE ---
+    // 4. Fake Analysis Animation & Storage
     async function runRealAnalysis(file) {
         document.getElementById('processing-modal').classList.remove('hidden');
         document.getElementById('loading-state').classList.remove('hidden');
@@ -390,12 +477,14 @@
         };
     }
 
+    // 5. Show Payment Options
     function showPaymentSelection() {
         document.getElementById('loading-state').classList.add('hidden');
         const payState = document.querySelector('#processing-modal #payment-state');
         if (payState) {
             payState.classList.remove('hidden');
             setTimeout(() => { payState.classList.remove('opacity-0', 'translate-y-4'); }, 50);
+            
             const radios = document.getElementsByName('modal_plan');
             radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
             updateModalButton();
@@ -406,20 +495,19 @@
         const radios = document.getElementsByName('modal_plan');
         let val = 'pro';
         radios.forEach(r => { if(r.checked) val = r.value; });
+        
         const btn = document.querySelector('#processing-modal #payment-link');
         const txt = document.getElementById('pay-btn-text');
         
         if (btn && LINKS[val]) {
             btn.href = LINKS[val];
-            btn.setAttribute('href', LINKS[val]); 
             txt.innerHTML = val === 'pro' ? `Unlock Blueprint ($7)` : `Start Elite System ($29)`;
             localStorage.setItem('userPlan', val); 
         }
     }
 
-    // --- 3. GENERATE REPORT HTML (THE MAGIC) ---
+    // --- 6. RENDER REPORT (Clean Version) ---
     function generateReportHTML(data) {
-        // DETECT PLAN TYPE BASED ON DATA KEYS
         const isElite = data.optimization_score !== undefined;
         const score = isElite ? data.optimization_score : data.presentation_score;
         const summary = data.summary || data.expert_note || "Analysis Complete.";
@@ -430,12 +518,9 @@
                 <div class="text-8xl font-heading font-bold text-white mb-4">${score}<span class="text-2xl text-gray-600">/10</span></div>
                 <p class="text-gray-400 text-sm max-w-lg mx-auto">${summary}</p>
             </div>
-            
-            <div class="grid md:grid-cols-2 gap-6">
-        `;
+            <div class="grid md:grid-cols-2 gap-6">`;
 
         if (isElite) {
-            // --- ELITE LAYOUT ---
             html += `
                 <div class="glass-panel p-6 rounded-2xl border-white/5">
                     <div class="text-[10px] text-gray-500 uppercase mb-2">Archetype</div>
@@ -454,10 +539,8 @@
                         <div><strong class="text-indigo-300">Hair:</strong> ${data.hairstyle_map?.length_zones || ''}</div>
                         <div><strong class="text-indigo-300">Jaw:</strong> ${data.jawline_strategy || ''}</div>
                     </div>
-                </div>
-            `;
+                </div>`;
         } else {
-            // --- PRO LAYOUT ---
             html += `
                 <div class="glass-panel p-6 rounded-2xl border-white/5">
                     <div class="text-[10px] text-gray-500 uppercase mb-2">Face Shape</div>
@@ -471,40 +554,29 @@
                 <div class="glass-panel p-6 rounded-2xl border-white/5">
                     <div class="text-[10px] text-gray-500 uppercase mb-2">Skin</div>
                     <div class="text-white font-medium text-sm">${data.skin?.improvement_direction || 'N/A'}</div>
-                </div>
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Grooming</div>
-                    <div class="text-white font-medium text-sm">${data.grooming?.recommendation || 'N/A'}</div>
-                </div>
-            `;
+                </div>`;
         }
 
-        html += `</div>`; // Close Grid
+        html += `</div>`; 
 
-        // --- ACTION PLAN ---
         html += `<h3 class="text-xl font-heading font-bold text-white mt-12 mb-6">Priority Actions</h3><div class="space-y-4">`;
-        
         const actions = data.top_3_actions || [];
         actions.forEach((action, i) => {
             html += `
                 <div class="glass-panel p-5 rounded-xl border-l-4 border-indigo-500 flex items-center gap-4">
                     <div class="text-indigo-400 font-mono text-xl font-bold">0${i+1}</div>
                     <div class="text-white text-sm font-medium">${action}</div>
-                </div>
-            `;
+                </div>`;
         });
         html += `</div>`;
-
-        // --- FOOTER NOTE ---
+        
         const note = data.final_note || data.expert_note || "";
-        if(note) {
-            html += `<div class="mt-8 text-center text-xs text-gray-500 italic">"${note}"</div>`;
-        }
+        if(note) html += `<div class="mt-8 text-center text-xs text-gray-500 italic">"${note}"</div>`;
 
         return html;
     }
 
-    // --- 4. SUCCESS LOGIC ---
+    // --- 7. MAIN LOGIC (On Page Load) ---
     window.onload = async function() {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -528,12 +600,12 @@
                     if (!response.ok) throw new Error("API Error");
                     const data = await response.json();
                     
-                    // Render Custom HTML
                     const reportHTML = generateReportHTML(data);
                     document.getElementById('report-content').innerHTML = reportHTML;
 
                     document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
+                    lucide.createIcons();
                     localStorage.setItem('auraMaxResults', JSON.stringify(data));
 
                 } catch (err) {
@@ -542,13 +614,12 @@
                     document.getElementById('processing-modal').classList.add('hidden');
                 }
             } else {
-                // Handle refresh logic
                 const old = localStorage.getItem('auraMaxResults');
                 if(old) {
                     const reportHTML = generateReportHTML(JSON.parse(old));
                     document.getElementById('report-content').innerHTML = reportHTML;
-                    document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
+                    lucide.createIcons();
                 } else {
                     window.location.href = '/';
                 }
@@ -569,7 +640,6 @@
         });
     }
 </script>
-
 
 
 
@@ -1063,10 +1133,8 @@
     let selectedPlan = 'elite'; 
     let faceModel = null;
 
-    // Load AI Model Silently
     async function loadFaceModel() {
-        try { faceModel = await blazeface.load(); console.log("Model Loaded"); } 
-        catch(e){ console.log("Model Load Error", e); }
+        try { faceModel = await blazeface.load(); } catch(e){ console.log("AI Init Error"); }
     }
     loadFaceModel();
 
@@ -1078,42 +1146,47 @@
 
     function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
 
-    // --- FACE DETECTION LOGIC ---
+    // --- 1. STRICT FACE DETECTION ---
     async function validateAndProcess(input) {
         const file = input.files[0];
         if (!file) return;
 
         const dropZone = document.getElementById('drop-area');
-        // Immediate Feedback
-        dropZone.innerHTML = `<div class="animate-pulse flex flex-col items-center justify-center py-8"><div class="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div><h3 class="text-white font-bold">Scanning Geometry...</h3></div>`;
-        
+        // Save original UI to restore if failed
+        const originalContent = dropZone.innerHTML;
+        dropZone.innerHTML = `<div class="animate-pulse flex flex-col items-center justify-center py-8"><h3 class="text-white font-bold">Scanning...</h3></div>`;
+        document.getElementById('upload-error').classList.add('hidden');
+
         try {
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
-            // Try detection if model is ready
-            if(faceModel) {
-                const preds = await faceModel.estimateFaces(img, false);
-                console.log("Faces detected:", preds.length);
-                if (preds.length === 0) {
-                     console.log("No face found, but allowing proceed.");
-                }
-            }
+            if(!faceModel) await loadFaceModel();
             
-            // Success - Move to Analysis
-            closeUploadModal();
-            runRealAnalysis(file);
+            // STRICT CHECK
+            const preds = await faceModel.estimateFaces(img, false);
+            console.log("Faces:", preds.length);
+
+            if (preds.length > 0) {
+                // Success
+                closeUploadModal();
+                runRealAnalysis(file);
+            } else {
+                // Fail
+                throw new Error("No Face");
+            }
 
         } catch (e) {
-            console.error("Detection bypassed:", e);
-            // Fail Open - Let them pay even if detection bugs out
-            closeUploadModal();
-            runRealAnalysis(file); 
+            console.error("Detection Failed");
+            // Reset UI
+            dropZone.innerHTML = `<div class="relative z-10 flex flex-col items-center"><div class="w-12 h-12 rounded-full border border-dashed border-gray-600 flex items-center justify-center mb-3 text-gray-400"><span class="text-xl font-light">+</span></div><h3 class="text-white font-bold text-sm">Upload Photo</h3><p class="text-gray-600 text-[10px] mt-1">JPG or PNG</p></div>`;
+            document.getElementById('upload-error').classList.remove('hidden');
+            input.value = ''; // Clear input to allow retry
         }
     }
 
-    // --- FAKE ANALYSIS (PRE-PAYMENT) ---
+    // --- 2. FAKE ANALYSIS & SAVE ---
     async function runRealAnalysis(file) {
         document.getElementById('processing-modal').classList.remove('hidden');
         document.getElementById('loading-state').classList.remove('hidden');
@@ -1121,29 +1194,24 @@
         
         const pct = document.getElementById('percent');
         let p = 0;
-        
-        // Save Image First
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function() {
-             try {
-                localStorage.setItem('pendingImage', reader.result);
-                localStorage.setItem('userPlan', selectedPlan);
-            } catch (e) { 
-                console.log("Storage warning:", e); 
-            }
-        };
-
-        // Visual Progress
         const interval = setInterval(() => {
-            if(p < 95) { p += 3; if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
+            if(p < 95) { p += 4; if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
         }, 100);
 
-        setTimeout(() => {
-            clearInterval(interval);
-            pct.innerText = '100%';
-            setTimeout(() => showPaymentSelection(), 500);
-        }, 2000); 
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            try {
+                localStorage.setItem('pendingImage', reader.result);
+                localStorage.setItem('userPlan', selectedPlan);
+            } catch (e) { console.log("Storage limit"); }
+
+            setTimeout(() => {
+                clearInterval(interval);
+                pct.innerText = '100%';
+                setTimeout(() => showPaymentSelection(), 500);
+            }, 1500); 
+        };
     }
 
     function showPaymentSelection() {
@@ -1152,12 +1220,8 @@
         if (payState) {
             payState.classList.remove('hidden');
             setTimeout(() => { payState.classList.remove('opacity-0', 'translate-y-4'); }, 50);
-            
-            // Auto-select correct plan
             const radios = document.getElementsByName('modal_plan');
-            radios.forEach(r => { 
-                if(r.value === selectedPlan) r.checked = true; 
-            });
+            radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
             updateModalButton();
         }
     }
@@ -1166,130 +1230,117 @@
         const radios = document.getElementsByName('modal_plan');
         let val = 'pro';
         radios.forEach(r => { if(r.checked) val = r.value; });
-        
         const btn = document.querySelector('#processing-modal #payment-link');
         const txt = document.getElementById('pay-btn-text');
         
         if (btn && LINKS[val]) {
             btn.href = LINKS[val];
             btn.setAttribute('href', LINKS[val]); 
-            
-            if(val === 'pro') {
-                txt.innerHTML = `Unlock Blueprint ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>`;
-            } else {
-                txt.innerHTML = `Start Elite System ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
-            }
-            lucide.createIcons();
+            txt.innerHTML = val === 'pro' ? `Unlock Blueprint ($7)` : `Start Elite System ($29)`;
             localStorage.setItem('userPlan', val); 
         }
     }
 
-    // --- REPORT GENERATOR (THE IMPORTANT PART) ---
+    // --- 3. GENERATE REPORT HTML (MAPPED TO YOUR NEW PROMPTS) ---
     function generateReportHTML(data) {
-        // Detect Plan based on unique keys
+        // Decide Layout based on data keys
         const isElite = data.optimization_score !== undefined;
-        const score = isElite ? data.optimization_score : data.presentation_score;
-        const summary = data.summary || "Analysis Complete.";
-
-        let html = `
-            <div class="glass-panel p-8 rounded-3xl border-indigo-500/20 bg-indigo-900/10 text-center mb-10">
-                <div class="text-xs text-indigo-300 font-bold uppercase tracking-[0.2em] mb-4">${isElite ? 'Visual Optimization Score' : 'Presentation Score'}</div>
-                <div class="text-8xl font-heading font-bold text-white mb-4">${score}<span class="text-2xl text-gray-600">/10</span></div>
-                <p class="text-gray-400 text-sm max-w-lg mx-auto leading-relaxed">${summary}</p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 gap-6">
-        `;
-
-        if (isElite) {
-            // === ELITE LAYOUT ===
-            html += `
-                <div class="glass-panel p-6 rounded-2xl border-white/5 md:col-span-2">
-                    <div class="flex items-center gap-2 mb-3"><i data-lucide="scale" class="w-4 h-4 text-indigo-400"></i><span class="text-xs font-bold text-gray-500 uppercase">Facial Balance</span></div>
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <div><p class="text-sm text-white">${data.facial_balance?.insight || 'N/A'}</p></div>
-                        <div class="text-sm text-gray-400 border-l border-white/10 pl-4">Strategy: ${data.facial_balance?.enhancement_strategy || 'N/A'}</div>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Aesthetic Archetype</div>
-                    <div class="text-xl font-bold text-white mb-1">${data.archetype?.type || 'N/A'}</div>
-                    <p class="text-xs text-gray-400 mt-2">${data.archetype?.description || ''}</p>
-                </div>
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Jawline Strategy</div>
-                    <div class="text-sm font-medium text-white">${data.jawline_strategy || 'N/A'}</div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl border-white/5 md:col-span-2">
-                    <div class="text-[10px] text-gray-500 uppercase mb-4">Elite Style System</div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Cuts</div>${data.style_system?.cuts || '-'}</div>
-                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Fabrics</div>${data.style_system?.fabrics || '-'}</div>
-                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Colors</div>${data.color_science?.best_colors || '-'}</div>
-                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Presence</div>${data.presence_coaching?.eye_contact || '-'}</div>
-                    </div>
-                </div>
-            `;
-        } else {
-            // === PRO LAYOUT ===
-            html += `
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Face Shape</div>
-                    <div class="text-xl font-bold text-white">${data.face_shape?.type || 'N/A'}</div>
-                    <p class="text-xs text-gray-400 mt-1">${data.face_shape?.insight || ''}</p>
-                </div>
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Hair Strategy</div>
-                    <div class="text-white font-medium text-sm mb-1">${data.hair?.strategy || 'N/A'}</div>
-                    <div class="text-xs text-red-400">Avoid: ${data.hair?.avoid || '-'}</div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Skin Snapshot</div>
-                    <div class="text-white font-medium text-sm">${data.skin?.improvement_direction || 'N/A'}</div>
-                </div>
-                <div class="glass-panel p-6 rounded-2xl border-white/5">
-                    <div class="text-[10px] text-gray-500 uppercase mb-2">Grooming</div>
-                    <div class="text-white font-medium text-sm">${data.grooming?.recommendation || 'N/A'}</div>
-                    <div class="text-xs text-gray-500 mt-1">${data.grooming?.maintenance || ''}</div>
-                </div>
-            `;
-        }
-
-        html += `</div>`; // End Grid
-
-        // --- ACTION PLAN ---
-        html += `<h3 class="text-xl font-heading font-bold text-white mt-12 mb-6">Priority Action Plan</h3><div class="space-y-3">`;
         
-        const actions = data.top_3_actions || [];
-        actions.forEach((action, i) => {
-            html += `
-                <div class="glass-panel p-4 rounded-xl border-l-4 border-indigo-500 flex items-start gap-4">
-                    <div class="bg-indigo-500/10 text-indigo-400 font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-sm">${i+1}</div>
-                    <div class="text-white text-sm font-medium py-1">${action}</div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-        
-        // --- NOTE ---
-        const note = data.final_note || data.expert_note || "";
-        if(note) html += `<div class="mt-8 pt-6 border-t border-white/10 text-center text-xs text-gray-500 italic">"${note}"</div>`;
-
-        return html;
+        if (isElite) return renderElite(data);
+        return renderPro(data);
     }
 
-    // --- SUCCESS HANDLER ---
+    function renderPro(data) {
+        const actions = data.top_3_actions || [];
+        let actionsHTML = actions.map((a, i) => `
+            <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                <div class="text-green-400 font-bold">✓</div>
+                <div class="text-sm text-gray-300">${a}</div>
+            </div>`).join('');
+
+        return `
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-panel p-8 rounded-3xl border-indigo-500/20 bg-indigo-900/10 text-center flex flex-col justify-center">
+                    <div class="text-xs text-indigo-300 font-bold uppercase tracking-[0.2em] mb-4">Presentation Score</div>
+                    <div class="text-8xl font-heading font-bold text-white mb-2">${data.presentation_score}<span class="text-2xl text-gray-600">/10</span></div>
+                    <p class="text-gray-400 text-xs">Visual Optimization Readiness</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 rounded-xl border-white/5"><div class="text-[10px] text-gray-500 uppercase">Face Shape</div><div class="text-lg font-bold text-white">${data.face_shape?.type}</div><div class="text-xs text-gray-400 mt-1 leading-tight">${data.face_shape?.insight}</div></div>
+                    <div class="glass-panel p-4 rounded-xl border-white/5"><div class="text-[10px] text-gray-500 uppercase">Skin</div><div class="text-lg font-bold text-white">Analysis</div><div class="text-xs text-gray-400 mt-1 leading-tight">${data.skin?.signals}</div></div>
+                    <div class="glass-panel p-4 rounded-xl border-white/5"><div class="text-[10px] text-gray-500 uppercase">Hair</div><div class="text-lg font-bold text-white">Strategy</div><div class="text-xs text-gray-400 mt-1 leading-tight">${data.hair?.strategy}</div></div>
+                    <div class="glass-panel p-4 rounded-xl border-white/5"><div class="text-[10px] text-gray-500 uppercase">Grooming</div><div class="text-lg font-bold text-white">${data.grooming?.recommendation}</div><div class="text-xs text-gray-400 mt-1 leading-tight">${data.grooming?.maintenance}</div></div>
+                </div>
+            </div>
+            <div class="mt-8">
+                <h3 class="text-xl font-bold text-white mb-4">High-Impact Actions</h3>
+                <div class="grid gap-4">${actionsHTML}</div>
+            </div>
+            <div class="mt-8 text-center text-xs text-gray-500 italic">"${data.expert_note}"</div>
+        `;
+    }
+
+    function renderElite(data) {
+        const priorities = data.priority_map || {};
+        
+        return `
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                <div class="glass-panel p-8 rounded-3xl border-indigo-500/20 bg-indigo-900/10 text-center">
+                    <div class="text-xs text-indigo-300 font-bold uppercase tracking-[0.2em] mb-4">Visual Optimization Score</div>
+                    <div class="text-8xl font-heading font-bold text-white mb-2">${data.optimization_score}<span class="text-2xl text-gray-600">/10</span></div>
+                    <p class="text-gray-400 text-xs">${data.summary}</p>
+                </div>
+                <div class="glass-panel p-6 rounded-3xl border-white/5 flex flex-col justify-center">
+                    <div class="text-xs text-gray-500 uppercase mb-2">Aesthetic Archetype</div>
+                    <div class="text-3xl font-heading font-bold text-white mb-2">${data.archetype?.type}</div>
+                    <p class="text-sm text-gray-400 leading-relaxed">${data.archetype?.description}</p>
+                    <div class="mt-4 pt-4 border-t border-white/5 text-xs text-indigo-300">Optimize for: ${data.archetype?.optimize_for}</div>
+                </div>
+            </div>
+
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Deep Analysis</h3>
+            <div class="grid md:grid-cols-3 gap-4 mb-8">
+                 <div class="glass-panel p-5 rounded-xl border-white/5">
+                    <div class="text-indigo-400 text-xs font-bold mb-2">FACIAL BALANCE</div>
+                    <p class="text-sm text-gray-300">${data.facial_balance?.insight}</p>
+                    <p class="text-xs text-gray-500 mt-2">Strategy: ${data.facial_balance?.enhancement_strategy}</p>
+                 </div>
+                 <div class="glass-panel p-5 rounded-xl border-white/5">
+                    <div class="text-indigo-400 text-xs font-bold mb-2">JAWLINE</div>
+                    <p class="text-sm text-gray-300">${data.jawline_strategy}</p>
+                 </div>
+                 <div class="glass-panel p-5 rounded-xl border-white/5">
+                    <div class="text-indigo-400 text-xs font-bold mb-2">COLOR SCIENCE</div>
+                    <p class="text-sm text-gray-300">${data.color_science?.undertone}</p>
+                    <p class="text-xs text-gray-500 mt-2">Best: ${data.color_science?.best_colors}</p>
+                 </div>
+            </div>
+
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Priority Map</h3>
+            <div class="grid md:grid-cols-3 gap-4 mb-8">
+                <div class="bg-green-900/10 p-4 rounded-xl border border-green-500/20">
+                    <div class="text-green-400 text-xs font-bold mb-2">QUICK WINS</div>
+                    <div class="text-sm text-gray-300">${(priorities.quick_wins || []).join(', ')}</div>
+                </div>
+                <div class="bg-blue-900/10 p-4 rounded-xl border border-blue-500/20">
+                    <div class="text-blue-400 text-xs font-bold mb-2">MEDIUM UPGRADES</div>
+                    <div class="text-sm text-gray-300">${(priorities.medium_upgrades || []).join(', ')}</div>
+                </div>
+                <div class="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/20">
+                    <div class="text-indigo-400 text-xs font-bold mb-2">HIGH IMPACT</div>
+                    <div class="text-sm text-gray-300">${(priorities.high_effort_high_impact || []).join(', ')}</div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center text-xs text-gray-500 italic">"${data.final_note}"</div>
+        `;
+    }
+
+    // --- 4. SUCCESS HANDLER ---
     window.onload = async function() {
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Trigger only if ?paid=true
         if (urlParams.get('paid') === 'true') {
-            console.log("Success URL detected.");
-            
-            // Clean up modals
             document.getElementById('upload-modal').classList.add('hidden');
             document.getElementById('processing-modal').classList.remove('hidden');
             document.getElementById('loading-state').classList.remove('hidden');
@@ -1301,39 +1352,29 @@
 
             if (savedImage) {
                 try {
-                    // Call Backend
                     const response = await fetch('/.netlify/functions/analyze', {
                         method: 'POST',
                         body: JSON.stringify({ image: savedImage, plan: savedPlan })
                     });
                     
-                    if (!response.ok) {
-                        const errText = await response.text();
-                        throw new Error(errText); // Throw actual server error
-                    }
-                    
+                    if (!response.ok) throw new Error("API Error");
                     const data = await response.json();
                     
-                    // Render
+                    // Render Custom HTML
                     const reportHTML = generateReportHTML(data);
                     document.getElementById('report-content').innerHTML = reportHTML;
-                    lucide.createIcons(); // Refresh icons in new HTML
+                    lucide.createIcons();
 
-                    // Show
                     document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
-                    
-                    // Cache
                     localStorage.setItem('auraMaxResults', JSON.stringify(data));
 
                 } catch (err) {
-                    console.error("Critical Error:", err);
-                    // Show the ACTUAL error to the user so we know what to fix
-                    alert(`Report Error: ${err.message}. Please screenshot this and contact support.`);
+                    console.error(err);
+                    alert("Report generation failed. Please contact support.");
                     document.getElementById('processing-modal').classList.add('hidden');
                 }
             } else {
-                // Handle Refresh logic
                 const old = localStorage.getItem('auraMaxResults');
                 if(old) {
                     const reportHTML = generateReportHTML(JSON.parse(old));
@@ -1347,7 +1388,7 @@
         }
     };
     
-    // Drag/Drop Binding
+    // Drag & Drop
     const da = document.getElementById('drop-area');
     if(da) {
         da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
