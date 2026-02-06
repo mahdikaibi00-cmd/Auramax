@@ -576,11 +576,12 @@
         return html;
     }
 
-    // --- 7. MAIN LOGIC (On Page Load) ---
+// --- REPLACEMENT: DETAILED ERROR REPORTING ---
     window.onload = async function() {
         const urlParams = new URLSearchParams(window.location.search);
         
         if (urlParams.get('paid') === 'true') {
+            // Show Loading UI
             document.getElementById('upload-modal').classList.add('hidden');
             document.getElementById('processing-modal').classList.remove('hidden');
             document.getElementById('loading-state').classList.remove('hidden');
@@ -597,23 +598,33 @@
                         body: JSON.stringify({ image: savedImage, plan: savedPlan })
                     });
                     
-                    if (!response.ok) throw new Error("API Error");
+                    // CHECK FOR HTTP ERRORS
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        throw new Error(`API Failed: ${errText}`);
+                    }
+                    
                     const data = await response.json();
                     
+                    // Render Report
                     const reportHTML = generateReportHTML(data);
                     document.getElementById('report-content').innerHTML = reportHTML;
+                    lucide.createIcons();
 
                     document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
-                    lucide.createIcons();
+                    
+                    // Save result
                     localStorage.setItem('auraMaxResults', JSON.stringify(data));
 
                 } catch (err) {
-                    console.error(err);
-                    alert("Report generation failed. Please contact support.");
+                    console.error("Full Error:", err);
+                    // --- SHOW ACTUAL ERROR MESSAGE ---
+                    alert(`Report Generation Failed.\n\nReason: ${err.message || err}`);
                     document.getElementById('processing-modal').classList.add('hidden');
                 }
             } else {
+                // Check for old results or redirect
                 const old = localStorage.getItem('auraMaxResults');
                 if(old) {
                     const reportHTML = generateReportHTML(JSON.parse(old));
@@ -1369,11 +1380,18 @@
                     document.getElementById('report-modal').classList.remove('hidden');
                     localStorage.setItem('auraMaxResults', JSON.stringify(data));
 
-                } catch (err) {
-                    console.error(err);
-                    alert("Report generation failed. Please contact support.");
+           } catch (err) {
+                    console.error("Full Error Details:", err);
+                    
+                    // Show the ACTUAL error from the backend
+                    let msg = "Report generation failed.";
+                    if(err.message) msg += "\n\nError: " + err.message;
+                    
+                    alert(msg);
                     document.getElementById('processing-modal').classList.add('hidden');
                 }
+
+
             } else {
                 const old = localStorage.getItem('auraMaxResults');
                 if(old) {
