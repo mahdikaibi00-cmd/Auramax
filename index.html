@@ -909,31 +909,55 @@ window.onload = async function() {
         </div>
     </footer>
 
+
+
+
+
+
+
+
+
+
 <div id="upload-modal" class="fixed inset-0 bg-[#050505]/95 z-[90] hidden flex flex-col items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
-        <div class="relative w-full max-w-2xl glass-panel rounded-3xl p-1 border border-white/10 shadow-2xl">
+    <div class="relative w-full max-w-2xl glass-panel rounded-3xl p-1 border border-white/10 shadow-2xl">
+        
+        <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition font-mono text-xl font-bold">✕</button>
+
+        <div class="bg-[#0B0E14] rounded-2xl p-8 md:p-12 text-center">
             
-            <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="flex justify-center gap-6 mb-8 text-[10px] uppercase tracking-widest font-bold text-gray-500">
+                <span class="border-b border-green-500/30 pb-0.5 text-green-500/80">AES-256 Encrypted</span>
+                <span class="border-b border-indigo-500/30 pb-0.5 text-indigo-500/80">100% Private</span>
+            </div>
 
-            <div class="bg-[#0B0E14] rounded-2xl p-8 md:p-12 text-center">
+            <h2 class="text-3xl md:text-4xl font-heading font-bold text-white mb-4">Initialize Analysis</h2>
+            <p class="text-gray-400 text-sm mb-10 max-w-md mx-auto">Upload a clear selfie to begin. Our AI needs a front-facing image to map your facial structure accurately.</p>
+
+            <div id="drop-area" class="drop-zone bg-white/5 rounded-2xl p-10 cursor-pointer group relative overflow-hidden" onclick="document.getElementById('real-file-input').click()">
                 
-                <div class="flex justify-center gap-6 mb-8 text-[10px] uppercase tracking-widest font-bold text-gray-500">
-                    <span class="flex items-center gap-1"><i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i> AES-256 Encrypted</span>
-                    <span class="flex items-center gap-1"><i data-lucide="eye-off" class="w-3 h-3 text-indigo-500"></i> 100% Private</span>
-                </div>
-
-                <h2 class="text-3xl md:text-4xl font-heading font-bold text-white mb-4">Initialize Analysis</h2>
-                <p class="text-gray-400 text-sm mb-10 max-w-md mx-auto">Upload a clear selfie to begin. Our AI needs a front-facing image to map your facial structure accurately.</p>
-
-                <div id="drop-area" class="drop-zone bg-white/5 rounded-2xl p-10 cursor-pointer group relative overflow-hidden" onclick="document.getElementById('real-file-input').click()">
-                    
-                    <div class="relative z-10">
-                        <div class="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300 border border-indigo-500/30">
-                            <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400"></i>
-                        </div>
-                        <h3 class="text-white font-bold text-lg mb-1">Click to Upload Photo</h3>
-                        <p class="text-gray-500 text-xs">or drag and drop here (JPG, PNG)</p>
+                <div class="relative z-10">
+                    <div class="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300 border border-indigo-500/30">
+                        <span class="text-indigo-400 font-bold text-2xl">+</span>
                     </div>
+                    <h3 class="text-white font-bold text-lg mb-1">Click to Upload Photo</h3>
+                    <p class="text-gray-500 text-xs">or drag and drop here (JPG, PNG)</p>
                 </div>
+            </div>
+
+            <input type="file" id="real-file-input" class="hidden" accept="image/*" onchange="validateAndProcess(this)">
+
+            <div id="upload-error" class="hidden mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold text-center">
+                <span id="error-text">No face detected. Please try a clearer photo.</span>
+            </div>
+
+            <p class="text-[10px] text-gray-600 mt-8">By uploading, you agree to our Terms. Photos are auto-deleted after processing.</p>
+        </div>
+    </div>
+</div>
+
+
+
+
 
                 <input type="file" id="real-file-input" class="hidden" accept="image/*" onchange="validateAndProcess(this)">
 
@@ -1019,6 +1043,10 @@ window.onload = async function() {
         </div>
     </div>
 
+
+
+
+
 <script>
     lucide.createIcons();
     const LINKS = {
@@ -1037,61 +1065,38 @@ window.onload = async function() {
     function triggerUpload(plan) {
         selectedPlan = plan;
         document.getElementById('upload-modal').classList.remove('hidden');
-        // Reset error state when opening modal
         document.getElementById('upload-error').classList.add('hidden');
     }
 
     function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
 
-    // Face Detection and Process (FIXED: No Reload on Failure)
+    // --- FIX 1: SOFT FACE DETECTION (NEVER BLOCKS USER) ---
     async function validateAndProcess(input) {
         const file = input.files[0];
         if (!file) return;
 
         const dropZone = document.getElementById('drop-area');
+        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Scanning...</h3></div>`;
         
-        // Save original content to restore it later if needed
-        const originalContent = `
-            <div class="relative z-10">
-                <div class="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300 border border-indigo-500/30">
-                    <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400"></i>
-                </div>
-                <h3 class="text-white font-bold text-lg mb-1">Click to Upload Photo</h3>
-                <p class="text-gray-500 text-xs">or drag and drop here (JPG, PNG)</p>
-            </div>`;
-        
-        // Show loading state in drop zone
-        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Detecting Face...</h3></div>`;
-        
-        // Hide previous errors
-        document.getElementById('upload-error').classList.add('hidden');
-
         try {
+            // We still try to detect just for the "cool factor"
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
             if(!faceModel) await loadFaceModel();
+            
+            // We attempt detection but don't rely on it strictly
             const preds = await faceModel.estimateFaces(img, false);
+            console.log("Faces found:", preds.length);
+            
+            // Proceed regardless of detection result (Fail Open)
+            closeUploadModal();
+            runRealAnalysis(file);
 
-            if (preds.length > 0) {
-                closeUploadModal();
-                runRealAnalysis(file);
-            } else {
-                // FAILURE CASE: Restore UI instead of reloading
-                dropZone.innerHTML = originalContent; 
-                lucide.createIcons(); // Re-render icons since we wiped the innerHTML
-                
-                const errorDiv = document.getElementById('upload-error');
-                errorDiv.classList.remove('hidden');
-                document.getElementById('error-text').innerText = "No face detected. Please try a clearer photo.";
-                
-                // Clear the input so they can select the same file again if they want
-                input.value = ''; 
-            }
         } catch (e) {
-            console.error("Detection Error:", e);
-            // Fallback to analysis if detection crashes (fail open)
+            console.error("Detection glitch, bypassing:", e);
+            // If detection crashes, we still let them buy
             closeUploadModal();
             runRealAnalysis(file); 
         }
@@ -1099,109 +1104,64 @@ window.onload = async function() {
 
     async function runRealAnalysis(file) {
         document.getElementById('processing-modal').classList.remove('hidden');
-        const pct = document.getElementById('percent');
-        
-        // Reset modal state
         document.getElementById('loading-state').classList.remove('hidden');
         document.querySelector('#processing-modal #payment-state').classList.add('hidden');
-
-        // Progress Animation
+        
+        const pct = document.getElementById('percent');
         let p = 0;
+
+        // Fake loading bar
         const interval = setInterval(() => {
-            if(p < 90) p += 2;
-            pct.innerText = p + '%';
-        }, 200);
+            if(p < 95) { p += (Math.random() * 5); if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
+        }, 150);
 
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
+            // Save image to browser memory
             try {
-                // NOTE: This fetch assumes you have the netlify function set up.
-                // If testing locally without a backend, you might want to mock this.
-                const response = await fetch('/.netlify/functions/analyze', {
-                    method: 'POST',
-                    body: JSON.stringify({ image: reader.result, plan: selectedPlan })
-                });
-                const data = await response.json();
-                
-                // Store results
-                localStorage.setItem('auraMaxResults', JSON.stringify(data));
+                localStorage.setItem('pendingImage', reader.result);
                 localStorage.setItem('userPlan', selectedPlan);
+            } catch (e) { console.log("Storage limit", e); }
 
-                clearInterval(interval);
-                pct.innerText = '100%';
-                
-                // Trigger the payment screen
-                setTimeout(() => showPaymentSelection(), 500);
-            } catch (err) {
-                // If fetch fails (or no backend), we still show payment screen for demo purposes
-                // alert("Analysis connection failed. Please try again."); 
-                console.log("Backend bypass for demo");
+            // Show Payment Screen
+            setTimeout(() => {
                 clearInterval(interval);
                 pct.innerText = '100%';
                 setTimeout(() => showPaymentSelection(), 500);
-            }
+            }, 2000); 
         };
     }
 
-    // FIXED: Correctly targets the payment modal elements and handles animation
     function showPaymentSelection() {
-        // Hide the loading spinner
         document.getElementById('loading-state').classList.add('hidden');
-        
-        // Target the payment state SPECIFICALLY inside the modal
         const payState = document.querySelector('#processing-modal #payment-state');
-        
         if (payState) {
             payState.classList.remove('hidden');
-            
-            // Trigger the fade-in animation
-            setTimeout(() => {
-                payState.classList.remove('opacity-0', 'translate-y-4');
-            }, 50);
-
-            // Sync the radio buttons to the user's initial choice
+            setTimeout(() => { payState.classList.remove('opacity-0', 'translate-y-4'); }, 50);
             const radios = document.getElementsByName('modal_plan');
-            radios.forEach(r => { 
-                if(r.value === selectedPlan) r.checked = true; 
-            });
-            
+            radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
             updateModalButton();
         }
     }
 
-    // FIXED: Updates the button link and text immediately
     function updateModalButton() {
         const radios = document.getElementsByName('modal_plan');
-        let val = 'pro'; // Default
-        
-        // Find checked radio
-        radios.forEach(r => { 
-            if(r.checked) val = r.value; 
-        });
-        
-        // Target the specific button inside the modal
+        let val = 'pro';
+        radios.forEach(r => { if(r.checked) val = r.value; });
         const btn = document.querySelector('#processing-modal #payment-link');
         const txt = document.getElementById('pay-btn-text');
         
         if (btn && LINKS[val]) {
             btn.href = LINKS[val];
             btn.setAttribute('href', LINKS[val]); 
-            
-            // Update text based on selection
-            if(val === 'pro') {
-                txt.innerHTML = `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>`;
-            } else {
-                txt.innerHTML = `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
-            }
+            txt.innerHTML = val === 'pro' ? `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>` : `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
             lucide.createIcons();
-            
-            // Save plan choice
             localStorage.setItem('userPlan', val); 
         }
     }
 
-    // Drag and Drop support
+    // Drag & Drop
     const da = document.getElementById('drop-area');
     if(da) {
         da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
@@ -1213,7 +1173,104 @@ window.onload = async function() {
             validateAndProcess({files});
         });
     }
+
+    // --- FIX 2: ROBUST RESULTS MAPPING ---
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.get('paid') === 'true') {
+            console.log("Payment verified. Fetching AI...");
+            
+            // Reset UI
+            document.getElementById('upload-modal').classList.add('hidden');
+            document.getElementById('processing-modal').classList.remove('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.querySelector('#processing-modal #payment-state').classList.add('hidden');
+            document.getElementById('status-text').innerText = "Generating Final Report...";
+            
+            const savedImage = localStorage.getItem('pendingImage');
+            const savedPlan = localStorage.getItem('userPlan') || 'pro';
+
+            if (savedImage) {
+                try {
+                    // CALL API
+                    const response = await fetch('/.netlify/functions/analyze', {
+                        method: 'POST',
+                        body: JSON.stringify({ image: savedImage, plan: savedPlan })
+                    });
+                    
+                    const data = await response.json();
+                    console.log("AI Results:", data); // Check console if issue persists
+                    
+                    localStorage.setItem('auraMaxResults', JSON.stringify(data));
+                    
+                    // MAP DATA TO HTML
+                    // 1. Stats
+                    if(data.score) document.getElementById('score-display').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
+                    if(data.percentile) document.getElementById('percentile-display').innerText = data.percentile;
+                    if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
+                    if(data.skin_quality) document.getElementById('res-skin').innerText = data.skin_quality;
+                    if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
+                    if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
+
+                    // 2. Action Plan (Handles Elite & Pro structures)
+                    const container = document.getElementById('action-plan-container');
+                    container.innerHTML = ''; // Wipe loading text
+
+                    // Elite Plan Structure (Array of Objects)
+                    if(data.priority_actions && Array.isArray(data.priority_actions)) {
+                        data.priority_actions.forEach((item, index) => {
+                            container.innerHTML += `
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
+                                <div>
+                                    <h4 class="text-white font-bold mb-1">${item.title}</h4>
+                                    <p class="text-sm text-gray-400">${item.desc}</p>
+                                </div>
+                            </div>`;
+                        });
+                    } 
+                    // Pro Plan Structure (Array of Strings)
+                    else if (data.top_3_checklist && Array.isArray(data.top_3_checklist)) {
+                        data.top_3_checklist.forEach((item, index) => {
+                            container.innerHTML += `
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
+                                <div>
+                                    <h4 class="text-white font-bold mb-1">Priority Upgrade ${index + 1}</h4>
+                                    <p class="text-sm text-gray-400">${item}</p>
+                                </div>
+                            </div>`;
+                        });
+                    } else {
+                        container.innerHTML = '<div class="text-red-400">Error loading specific tips. Please check score summary.</div>';
+                    }
+
+                    // Show Report
+                    document.getElementById('processing-modal').classList.add('hidden');
+                    document.getElementById('report-modal').classList.remove('hidden');
+                    
+                } catch (err) {
+                    console.error("API Failure:", err);
+                    alert("System busy. Please refresh the page to retry.");
+                    document.getElementById('processing-modal').classList.add('hidden');
+                }
+            } else {
+                // If user refreshes on success page, try to load old data
+                const old = localStorage.getItem('auraMaxResults');
+                if(old) {
+                    document.getElementById('processing-modal').classList.add('hidden');
+                    document.getElementById('report-modal').classList.remove('hidden');
+                } else {
+                    window.location.href = '/';
+                }
+            }
+        }
+    };
 </script>
+
+
+
 
 <input type="file" id="upload-input" accept="image/*" class="hidden" style="display:none;">
 
@@ -1246,53 +1303,39 @@ window.onload = async function() {
                 <div class="absolute inset-0 bg-indigo-500/10 blur-3xl"></div>
                 <div class="relative z-10">
                     <div class="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Aesthetic Score</div>
-                    <div class="text-7xl font-heading font-bold text-white mb-2">87<span class="text-2xl text-gray-500">/100</span></div>
-                    <div class="inline-block px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold border border-green-500/30">Top 15% Percentile</div>
+                    <div class="text-7xl font-heading font-bold text-white mb-2" id="score-display">--<span class="text-2xl text-gray-500">/100</span></div>
+                    <div class="inline-block px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold border border-green-500/30" id="percentile-display">Analyzing...</div>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div class="glass-panel p-6 rounded-2xl border-white/10">
                     <div class="text-gray-500 text-xs uppercase mb-2">Face Shape</div>
-                    <div class="text-white font-bold text-lg" id="res-face">Oval</div>
+                    <div class="text-white font-bold text-lg" id="res-face">...</div>
                 </div>
                 <div class="glass-panel p-6 rounded-2xl border-white/10">
                     <div class="text-gray-500 text-xs uppercase mb-2">Skin Quality</div>
-                    <div class="text-white font-bold text-lg" id="res-skin">Good</div>
+                    <div class="text-white font-bold text-lg" id="res-skin">...</div>
                 </div>
                 <div class="glass-panel p-6 rounded-2xl border-white/10">
                     <div class="text-gray-500 text-xs uppercase mb-2">Masculinity</div>
-                    <div class="text-white font-bold text-lg" id="res-masc">High</div>
+                    <div class="text-white font-bold text-lg" id="res-masc">...</div>
                 </div>
                 <div class="glass-panel p-6 rounded-2xl border-white/10">
                     <div class="text-gray-500 text-xs uppercase mb-2">Potential</div>
-                    <div class="text-indigo-400 font-bold text-lg" id="res-pot">94/100</div>
+                    <div class="text-indigo-400 font-bold text-lg" id="res-pot">...</div>
                 </div>
             </div>
         </div>
 
         <h3 class="text-2xl font-heading font-bold mb-6 text-white">Priority Action Plan</h3>
-        <div class="space-y-4 mb-12">
-            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">1</div>
-                <div>
-                    <h4 class="text-white font-bold mb-1">Hair Volume Correction</h4>
-                    <p class="text-sm text-gray-400">Your sides are too wide for your oval face shape. Tighten the sides to emphasize jawline definition.</p>
-                </div>
-            </div>
-            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">2</div>
-                <div>
-                    <h4 class="text-white font-bold mb-1">Skincare: Hydration</h4>
-                    <p class="text-sm text-gray-400">Minor texture detected on cheeks. Incorporate a Hyaluronic Acid serum PM.</p>
-                </div>
-            </div>
+        <div class="space-y-4 mb-12" id="action-plan-container">
+            <div class="text-gray-500 text-center py-8">Generating your personalized plan...</div>
         </div>
 
         <button onclick="window.print()" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition">Download Full PDF Report</button>
     </div>
 </div>
-
 
 
 
