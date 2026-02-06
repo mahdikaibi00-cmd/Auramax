@@ -1032,24 +1032,20 @@
         dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Scanning...</h3></div>`;
         
         try {
-            // We still try to detect just for the "cool factor"
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
             if(!faceModel) await loadFaceModel();
             
-            // We attempt detection but don't rely on it strictly
+            // Attempt detection but ignore failure
             const preds = await faceModel.estimateFaces(img, false);
-            console.log("Faces found:", preds.length);
             
-            // Proceed regardless of detection result (Fail Open)
             closeUploadModal();
             runRealAnalysis(file);
 
         } catch (e) {
             console.error("Detection glitch, bypassing:", e);
-            // If detection crashes, we still let them buy
             closeUploadModal();
             runRealAnalysis(file); 
         }
@@ -1063,7 +1059,6 @@
         const pct = document.getElementById('percent');
         let p = 0;
 
-        // Fake loading bar
         const interval = setInterval(() => {
             if(p < 95) { p += (Math.random() * 5); if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
         }, 150);
@@ -1071,13 +1066,11 @@
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
-            // Save image to browser memory
             try {
                 localStorage.setItem('pendingImage', reader.result);
                 localStorage.setItem('userPlan', selectedPlan);
             } catch (e) { console.log("Storage limit", e); }
 
-            // Show Payment Screen
             setTimeout(() => {
                 clearInterval(interval);
                 pct.innerText = '100%';
@@ -1132,33 +1125,28 @@
         const urlParams = new URLSearchParams(window.location.search);
         
         if (urlParams.get('paid') === 'true') {
-            console.log("Payment verified. Fetching AI...");
             
             // Reset UI
             document.getElementById('upload-modal').classList.add('hidden');
             document.getElementById('processing-modal').classList.remove('hidden');
             document.getElementById('loading-state').classList.remove('hidden');
             document.querySelector('#processing-modal #payment-state').classList.add('hidden');
-            document.getElementById('status-text').innerText = "Generating Final Report...";
+            document.getElementById('status-text').innerText = "Analyzing Biometrics...";
             
             const savedImage = localStorage.getItem('pendingImage');
             const savedPlan = localStorage.getItem('userPlan') || 'pro';
 
             if (savedImage) {
                 try {
-                    // CALL API
                     const response = await fetch('/.netlify/functions/analyze', {
                         method: 'POST',
                         body: JSON.stringify({ image: savedImage, plan: savedPlan })
                     });
                     
                     const data = await response.json();
-                    console.log("AI Results:", data); // Check console if issue persists
-                    
                     localStorage.setItem('auraMaxResults', JSON.stringify(data));
                     
-                    // MAP DATA TO HTML
-                    // 1. Stats
+                    // 1. Stats (With safety checks)
                     if(data.score) document.getElementById('score-display').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
                     if(data.percentile) document.getElementById('percentile-display').innerText = data.percentile;
                     if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
@@ -1166,50 +1154,43 @@
                     if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
                     if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
 
-                    // 2. Action Plan (Handles Elite & Pro structures)
+                    // 2. Action Plan - ROBUST MAPPING
                     const container = document.getElementById('action-plan-container');
-                    container.innerHTML = ''; // Wipe loading text
+                    container.innerHTML = ''; 
 
-                    // Elite Plan Structure (Array of Objects)
-                    if(data.priority_actions && Array.isArray(data.priority_actions)) {
-                        data.priority_actions.forEach((item, index) => {
+                    // Check for ANY valid array list in the response
+                    let items = data.priority_actions || data.top_3_checklist || data.top_3_actions || [];
+                    
+                    if (items.length > 0) {
+                        items.forEach((item, index) => {
+                            // Handle both Object {title, desc} and String "Do this" formats
+                            let title = item.title || `Priority Action ${index + 1}`;
+                            let desc = item.desc || (typeof item === 'string' ? item : "Review your full report for details.");
+                            
                             container.innerHTML += `
                             <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
                                 <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
                                 <div>
-                                    <h4 class="text-white font-bold mb-1">${item.title}</h4>
-                                    <p class="text-sm text-gray-400">${item.desc}</p>
-                                </div>
-                            </div>`;
-                        });
-                    } 
-                    // Pro Plan Structure (Array of Strings)
-                    else if (data.top_3_checklist && Array.isArray(data.top_3_checklist)) {
-                        data.top_3_checklist.forEach((item, index) => {
-                            container.innerHTML += `
-                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
-                                <div>
-                                    <h4 class="text-white font-bold mb-1">Priority Upgrade ${index + 1}</h4>
-                                    <p class="text-sm text-gray-400">${item}</p>
+                                    <h4 class="text-white font-bold mb-1">${title}</h4>
+                                    <p class="text-sm text-gray-400">${desc}</p>
                                 </div>
                             </div>`;
                         });
                     } else {
-                        container.innerHTML = '<div class="text-red-400">Error loading specific tips. Please check score summary.</div>';
+                        // Fallback if AI returns weird format
+                        container.innerHTML = `<div class="p-4 bg-yellow-500/10 text-yellow-200 rounded-xl">Analysis complete. Please consult the aesthetic score above.</div>`;
                     }
 
-                    // Show Report
                     document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
                     
                 } catch (err) {
                     console.error("API Failure:", err);
-                    alert("System busy. Please refresh the page to retry.");
+                    alert("System busy. Please refresh to retry.");
                     document.getElementById('processing-modal').classList.add('hidden');
                 }
             } else {
-                // If user refreshes on success page, try to load old data
+                // Refresh Logic
                 const old = localStorage.getItem('auraMaxResults');
                 if(old) {
                     document.getElementById('processing-modal').classList.add('hidden');
@@ -1221,7 +1202,6 @@
         }
     };
 </script>
-
 
 
 
