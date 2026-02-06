@@ -303,6 +303,14 @@
     </section>
 
 
+
+
+
+
+
+
+
+
 <script>
     lucide.createIcons();
     const LINKS = {
@@ -326,34 +334,43 @@
 
     function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
 
-    // --- FIX 1: SOFT FACE DETECTION (NEVER BLOCKS USER) ---
+    // --- FACE DETECTION (FAIL-OPEN) ---
     async function validateAndProcess(input) {
         const file = input.files[0];
         if (!file) return;
 
         const dropZone = document.getElementById('drop-area');
-        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Scanning...</h3></div>`;
+        // Show scanning state
+        dropZone.innerHTML = `<div class="animate-pulse flex flex-col items-center justify-center py-8"><div class="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div><h3 class="text-white font-bold">Scanning Geometry...</h3></div>`;
         
         try {
-            // We still attempt detection for the visual effect
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
             if(!faceModel) await loadFaceModel();
             
-            // Proceed regardless of detection result (Fail Open)
+            // Attempt detection (Just for show/verification)
+            try {
+                const preds = await faceModel.estimateFaces(img, false);
+                console.log("Faces detected:", preds.length);
+            } catch(e) {
+                console.log("Detection bypassed");
+            }
+            
+            // ALWAYS proceed to analysis (Don't block the money!)
             closeUploadModal();
             runRealAnalysis(file);
 
         } catch (e) {
-            console.error("Detection glitch, bypassing:", e);
-            // If detection crashes, we still let them buy
+            console.error("Processing error", e);
+            // Fallback
             closeUploadModal();
             runRealAnalysis(file); 
         }
     }
 
+    // --- FAKE ANALYSIS & SAVE ---
     async function runRealAnalysis(file) {
         document.getElementById('processing-modal').classList.remove('hidden');
         document.getElementById('loading-state').classList.remove('hidden');
@@ -362,21 +379,21 @@
         const pct = document.getElementById('percent');
         let p = 0;
 
-        // Fake loading bar
+        // Visual Progress Bar
         const interval = setInterval(() => {
             if(p < 95) { p += (Math.random() * 5); if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
-        }, 150);
+        }, 100);
 
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
-            // Save image to browser memory
             try {
+                // Save image for AFTER payment
                 localStorage.setItem('pendingImage', reader.result);
                 localStorage.setItem('userPlan', selectedPlan);
             } catch (e) { console.log("Storage limit", e); }
 
-            // Show Payment Screen
+            // Show Payment Options after 2 seconds
             setTimeout(() => {
                 clearInterval(interval);
                 pct.innerText = '100%';
@@ -391,6 +408,7 @@
         if (payState) {
             payState.classList.remove('hidden');
             setTimeout(() => { payState.classList.remove('opacity-0', 'translate-y-4'); }, 50);
+            
             const radios = document.getElementsByName('modal_plan');
             radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
             updateModalButton();
@@ -401,19 +419,25 @@
         const radios = document.getElementsByName('modal_plan');
         let val = 'pro';
         radios.forEach(r => { if(r.checked) val = r.value; });
+        
         const btn = document.querySelector('#processing-modal #payment-link');
         const txt = document.getElementById('pay-btn-text');
         
         if (btn && LINKS[val]) {
             btn.href = LINKS[val];
             btn.setAttribute('href', LINKS[val]); 
-            txt.innerHTML = val === 'pro' ? `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>` : `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
+            
+            if(val === 'pro') {
+                txt.innerHTML = `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>`;
+            } else {
+                txt.innerHTML = `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
+            }
             lucide.createIcons();
             localStorage.setItem('userPlan', val); 
         }
     }
 
-    // Drag & Drop
+    // Drag & Drop Listeners
     const da = document.getElementById('drop-area');
     if(da) {
         da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
@@ -426,14 +450,15 @@
         });
     }
 
-    // --- FIX 2: ROBUST RESULTS MAPPING (Dynamic Data Handling) ---
+    // --- SUCCESS / PAID LOGIC ---
     window.onload = async function() {
         const urlParams = new URLSearchParams(window.location.search);
         
+        // 1. Detect if user Paid
         if (urlParams.get('paid') === 'true') {
-            console.log("Payment verified. Fetching AI...");
+            console.log("Payment Verified. Starting AI...");
             
-            // Reset UI
+            // Clean UI
             document.getElementById('upload-modal').classList.add('hidden');
             document.getElementById('processing-modal').classList.remove('hidden');
             document.getElementById('loading-state').classList.remove('hidden');
@@ -445,76 +470,64 @@
 
             if (savedImage) {
                 try {
-                    // CALL API
+                    // 2. Call the Backend (No-Install Version)
+                    // Note: Ensure your file is in "netlify/functions/analyze.js"
                     const response = await fetch('/.netlify/functions/analyze', {
                         method: 'POST',
                         body: JSON.stringify({ image: savedImage, plan: savedPlan })
                     });
                     
+                    if (!response.ok) throw new Error("Backend Error");
+
                     const data = await response.json();
-                    console.log("AI Results:", data); 
-                    
                     localStorage.setItem('auraMaxResults', JSON.stringify(data));
                     
-                    // --- MAP DATA TO HTML ---
-                    // 1. Stats
+                    // 3. Map Data to HTML
                     if(data.score) document.getElementById('score-display').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
                     if(data.percentile) document.getElementById('percentile-display').innerText = data.percentile;
                     if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
-                    if(data.skin_quality || data.skin) document.getElementById('res-skin').innerText = data.skin_quality || data.skin;
+                    if(data.skin_quality) document.getElementById('res-skin').innerText = data.skin_quality;
                     if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
                     if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
 
-                    // 2. Action Plan Container
+                    // 4. Generate Action Plan List
                     const container = document.getElementById('action-plan-container');
-                    container.innerHTML = ''; // Wipe loading text
+                    container.innerHTML = ''; 
 
-                    // --- STRATEGY FOR ELITE PLAN (Detailed Object List) ---
-                    if(data.priority_actions && Array.isArray(data.priority_actions)) {
-                        data.priority_actions.forEach((item, index) => {
+                    // Check for either format (Pro vs Elite)
+                    let items = data.priority_actions || data.top_3_checklist || [];
+                    
+                    if (items.length > 0) {
+                        items.forEach((item, index) => {
+                            // Handle object vs string format
+                            let title = item.title || `Priority Action ${index + 1}`;
+                            let desc = item.desc || (typeof item === 'string' ? item : "Review full report for details.");
+                            
                             container.innerHTML += `
                             <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
                                 <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
                                 <div>
-                                    <h4 class="text-white font-bold mb-1">${item.title}</h4>
-                                    <p class="text-sm text-gray-400">${item.desc}</p>
+                                    <h4 class="text-white font-bold mb-1">${title}</h4>
+                                    <p class="text-sm text-gray-400">${desc}</p>
                                 </div>
                             </div>`;
                         });
-                    } 
-                    // --- STRATEGY FOR PRO PLAN (String List) ---
-                    else if (data.top_3_checklist && Array.isArray(data.top_3_checklist)) {
-                        data.top_3_checklist.forEach((item, index) => {
-                            container.innerHTML += `
-                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
-                                <div>
-                                    <h4 class="text-white font-bold mb-1">Priority Upgrade ${index + 1}</h4>
-                                    <p class="text-sm text-gray-400">${item}</p>
-                                </div>
-                            </div>`;
-                        });
-                    } 
-                    // --- FALLBACK (If AI structure varies) ---
-                    else {
-                        container.innerHTML = '<div class="text-yellow-500">Analysis complete. Check score summary above.</div>';
+                    } else {
+                        container.innerHTML = `<div class="p-4 text-center text-gray-500">Analysis complete. Please see score above.</div>`;
                     }
 
-                    // Show Report
+                    // 5. Show Results
                     document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
                     
                 } catch (err) {
-                    console.error("API Failure:", err);
-                    alert("System busy. Please refresh the page to retry.");
+                    console.error("Fatal Error:", err);
+                    alert("We couldn't generate the report right now. Please contact support.");
                     document.getElementById('processing-modal').classList.add('hidden');
                 }
             } else {
-                // If user refreshes on success page, try to load old data
-                const old = localStorage.getItem('auraMaxResults');
-                if(old) {
-                    const data = JSON.parse(old);
-                    // (Re-run mapping logic here if needed for refresh persistence)
+                // If refresh with no image, try to show old result or redirect
+                if(localStorage.getItem('auraMaxResults')) {
                     document.getElementById('processing-modal').classList.add('hidden');
                     document.getElementById('report-modal').classList.remove('hidden');
                 } else {
@@ -524,6 +537,15 @@
         }
     };
 </script>
+
+
+
+
+
+
+
+
+
 
 
 

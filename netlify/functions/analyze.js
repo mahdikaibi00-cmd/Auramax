@@ -1,14 +1,13 @@
-const OpenAI = require("openai");
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY, // This will now use your ApiFree key
-  baseURL: "https://api.apifree.ai/v1" // This points to the free server
-});
 exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
+  // 1. Only allow POST requests
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
 
   try {
     const { image, plan } = JSON.parse(event.body);
 
+    // 2. Define the Prompts (Your Custom System)
     const prompts = {
       pro: `You are a professional image advisor. Analyze the image for visual presentation (grooming, style, face shape) based on male aesthetic standards. 
       CRITICAL: You MUST return a JSON object. Do not include markdown formatting.
@@ -39,17 +38,43 @@ exports.handler = async (event) => {
       {"score":78, "percentile":"Top 30%", "face_shape":"Square", "skin_quality":"Needs Hydration", "masculinity":"High", "potential":95, "priority_actions":[{"title":"Hair Volume","desc":"Sides are too wide. Taper the sides."},{"title":"Skin Routine","desc":"Start Retinol protocol."}]}`
     };
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: [
-        { type: "text", text: prompts[plan] || prompts.pro },
-        { type: "image_url", image_url: { url: image } }
-      ]}],
-      response_format: { type: "json_object" }
+    // 3. Send to ApiFree (Using Native Fetch - No Library Needed)
+    const response = await fetch("https://api.apifree.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: "openai/gpt-4o", // Correct model for ApiFree
+            messages: [
+                { role: "user", content: [
+                    { type: "text", text: prompts[plan] || prompts.pro },
+                    { type: "image_url", image_url: { url: image } }
+                ]}
+            ],
+            response_format: { type: "json_object" },
+            max_tokens: 4096,
+            temperature: 1
+        })
     });
 
-    return { statusCode: 200, body: response.choices[0].message.content };
+    // 4. Handle API Errors
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("ApiFree Error:", errorText);
+        return { statusCode: response.status, body: `API Error: ${errorText}` };
+    }
+
+    // 5. Return Success
+    const data = await response.json();
+    return { 
+        statusCode: 200, 
+        body: data.choices[0].message.content 
+    };
+
   } catch (error) {
+    console.error("Function Error:", error);
     return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
   }
 };
