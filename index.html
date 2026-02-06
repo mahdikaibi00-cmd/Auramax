@@ -10,6 +10,22 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
 
     <style>
+
+
+/* PDF PRINT STYLES */
+        @media print {
+            body * { visibility: hidden; }
+            #report-modal, #report-modal * { visibility: visible; }
+            #report-modal { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; color: black; }
+            .glass-panel { border: 1px solid #ccc; background: white; color: black; box-shadow: none; }
+            .text-gray-400, .text-gray-500 { color: #555 !important; }
+            .text-white { color: #000 !important; }
+            button { display: none !important; } /* Hide buttons on PDF */
+        }
+
+
+
+
 /* DRAG & DROP ZONE */
         .drop-zone { transition: all 0.3s ease; border: 1px dashed rgba(255,255,255,0.2); }
         .drop-zone.drag-over { border-color: #6366f1; background: rgba(99,102,241,0.1); transform: scale(1.02); }
@@ -287,7 +303,273 @@
     </section>
 
 
+<script>
+    lucide.createIcons();
+    const LINKS = {
+        pro: "https://buy.stripe.com/fZubJ07Vp0xBalwbDNdby05",
+        elite: "https://buy.stripe.com/dRmcN4a3x3JN8doePZdby06"
+    };
 
+    let selectedPlan = 'elite'; 
+    let faceModel = null;
+
+    async function loadFaceModel() {
+        try { faceModel = await blazeface.load(); } catch(e){ console.log("AI Init Error"); }
+    }
+    loadFaceModel();
+
+    function triggerUpload(plan) {
+        selectedPlan = plan;
+        document.getElementById('upload-modal').classList.remove('hidden');
+        document.getElementById('upload-error').classList.add('hidden');
+    }
+
+    function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
+
+    // Face Detection and Process
+    async function validateAndProcess(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const dropZone = document.getElementById('drop-area');
+        const originalContent = `
+            <div class="relative z-10">
+                <div class="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300 border border-indigo-500/30">
+                    <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg mb-1">Click to Upload Photo</h3>
+                <p class="text-gray-500 text-xs">or drag and drop here (JPG, PNG)</p>
+            </div>`;
+        
+        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Detecting Face...</h3></div>`;
+        document.getElementById('upload-error').classList.add('hidden');
+
+        try {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            await img.decode();
+            
+            if(!faceModel) await loadFaceModel();
+            const preds = await faceModel.estimateFaces(img, false);
+
+            if (preds.length > 0) {
+                closeUploadModal();
+                runRealAnalysis(file);
+            } else {
+                dropZone.innerHTML = originalContent; 
+                lucide.createIcons();
+                const errorDiv = document.getElementById('upload-error');
+                errorDiv.classList.remove('hidden');
+                document.getElementById('error-text').innerText = "No face detected. Please try a clearer photo.";
+                input.value = ''; 
+            }
+        } catch (e) {
+            console.error("Detection Error:", e);
+            closeUploadModal();
+            runRealAnalysis(file); 
+        }
+    }
+
+
+
+
+
+
+
+
+    async function runRealAnalysis(file) {
+        // 1. Show the loading screen
+        document.getElementById('processing-modal').classList.remove('hidden');
+        document.getElementById('loading-state').classList.remove('hidden');
+        document.querySelector('#processing-modal #payment-state').classList.add('hidden');
+        
+        const pct = document.getElementById('percent');
+        let p = 0;
+
+        // 2. Run a "Fake" Progress Bar (Visuals only)
+        const interval = setInterval(() => {
+            if(p < 95) {
+                p += (Math.random() * 5); // Random increments look more real
+                if(p > 95) p = 95;
+                pct.innerText = Math.floor(p) + '%';
+            }
+        }, 150);
+
+        // 3. Save the image for later (When they pay)
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            // Save the raw image data to the browser so we can use it AFTER payment
+            try {
+                localStorage.setItem('pendingImage', reader.result);
+                localStorage.setItem('userPlan', selectedPlan);
+            } catch (e) {
+                console.log("Image too large for local storage", e);
+                // In a real app, you'd upload to a server here. 
+                // For now, this works for standard selfies.
+            }
+
+            // 4. Finish "Scanning" and ask for money
+            setTimeout(() => {
+                clearInterval(interval);
+                pct.innerText = '100%';
+                setTimeout(() => showPaymentSelection(), 500);
+            }, 2500); // Wait 2.5 seconds to make it feel "real"
+        };
+    }
+
+
+
+
+
+
+
+
+    function showPaymentSelection() {
+        document.getElementById('loading-state').classList.add('hidden');
+        const payState = document.querySelector('#processing-modal #payment-state');
+        if (payState) {
+            payState.classList.remove('hidden');
+            setTimeout(() => {
+                payState.classList.remove('opacity-0', 'translate-y-4');
+            }, 50);
+            const radios = document.getElementsByName('modal_plan');
+            radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
+            updateModalButton();
+        }
+    }
+
+    function updateModalButton() {
+        const radios = document.getElementsByName('modal_plan');
+        let val = 'pro';
+        radios.forEach(r => { if(r.checked) val = r.value; });
+        const btn = document.querySelector('#processing-modal #payment-link');
+        const txt = document.getElementById('pay-btn-text');
+        
+        if (btn && LINKS[val]) {
+            btn.href = LINKS[val];
+            btn.setAttribute('href', LINKS[val]); 
+            if(val === 'pro') {
+                txt.innerHTML = `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>`;
+            } else {
+                txt.innerHTML = `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
+            }
+            lucide.createIcons();
+            localStorage.setItem('userPlan', val); 
+        }
+    }
+
+    const da = document.getElementById('drop-area');
+    if(da) {
+        da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
+        da.addEventListener('dragleave', () => da.classList.remove('drag-over'));
+        da.addEventListener('drop', e => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            document.getElementById('real-file-input').files = files;
+            validateAndProcess({files});
+        });
+    }
+
+// --- UPDATED SUCCESS LOGIC & DATA MAPPING ---
+window.onload = async function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 1. Check if user just paid
+    if (urlParams.get('paid') === 'true') {
+        console.log("Payment Verified. Starting AI Analysis...");
+        
+        // UI Handling
+        document.getElementById('upload-modal').classList.add('hidden');
+        document.getElementById('processing-modal').classList.remove('hidden');
+        document.getElementById('loading-state').classList.remove('hidden');
+        document.querySelector('#processing-modal #payment-state').classList.add('hidden');
+        document.getElementById('status-text').innerText = "Payment received! Generating Report...";
+        
+        const savedImage = localStorage.getItem('pendingImage');
+        const savedPlan = localStorage.getItem('userPlan') || 'pro';
+
+        if (savedImage) {
+            try {
+                // 3. Call API
+                const response = await fetch('/.netlify/functions/analyze', {
+                    method: 'POST',
+                    body: JSON.stringify({ image: savedImage, plan: savedPlan })
+                });
+                
+                const data = await response.json();
+                console.log("AI Data Received:", data);
+                
+                // 4. Save & Map Data to UI
+                localStorage.setItem('auraMaxResults', JSON.stringify(data));
+                
+                // --- THIS IS THE NEW PART: FILLING THE REPORT ---
+                if(data.score) document.querySelector('.text-7xl').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
+                if(data.percentile) document.querySelector('.inline-block.px-3').innerText = data.percentile;
+                if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
+                if(data.skin_quality) document.getElementById('res-skin').innerText = data.skin_quality;
+                if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
+                if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
+
+                // Map Recommendations (Dynamic List)
+                const actionContainer = document.querySelector('.space-y-4.mb-12');
+                if(data.priority_actions && actionContainer) {
+                    actionContainer.innerHTML = ''; // Clear fake data
+                    data.priority_actions.forEach((item, index) => {
+                        actionContainer.innerHTML += `
+                        <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">${index + 1}</div>
+                            <div>
+                                <h4 class="text-white font-bold mb-1">${item.title}</h4>
+                                <p class="text-sm text-gray-400">${item.desc}</p>
+                            </div>
+                        </div>`;
+                    });
+                } else if (data.top_3_checklist && actionContainer) {
+                     // Fallback for Pro plan
+                     actionContainer.innerHTML = '';
+                     data.top_3_checklist.forEach((item, index) => {
+                        actionContainer.innerHTML += `
+                        <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">${index + 1}</div>
+                            <div>
+                                <h4 class="text-white font-bold mb-1">Recommendation ${index+1}</h4>
+                                <p class="text-sm text-gray-400">${item}</p>
+                            </div>
+                        </div>`;
+                    });
+                }
+                // ------------------------------------------------
+
+                // Hide loading, Show Report
+                document.getElementById('processing-modal').classList.add('hidden');
+                document.getElementById('report-modal').classList.remove('hidden');
+                
+            } catch (err) {
+                console.error("Analysis Failed:", err);
+                alert("Analysis error. Check console.");
+                document.getElementById('processing-modal').classList.add('hidden');
+            }
+        } else {
+            // No image found (user refreshed)
+            document.getElementById('processing-modal').classList.add('hidden');
+            // Check if we have old results
+            const oldData = localStorage.getItem('auraMaxResults');
+            if(oldData) {
+                document.getElementById('report-modal').classList.remove('hidden');
+            } else {
+                alert("Session expired. Please upload again.");
+                window.location.href = '/';
+            }
+        }
+    }
+};
+
+
+
+
+
+</script>
 
 
 
@@ -934,6 +1216,100 @@
 </script>
 
 <input type="file" id="upload-input" accept="image/*" class="hidden" style="display:none;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="report-modal" class="fixed inset-0 bg-[#050505] z-[200] hidden overflow-y-auto">
+    <div class="max-w-4xl mx-auto px-6 py-12">
+        <div class="flex justify-between items-center mb-12">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white"><i data-lucide="scan-face" class="w-5 h-5"></i></div>
+                <span class="font-heading font-bold text-xl">AuraMax Report</span>
+            </div>
+            <button onclick="window.location.href='/'" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 mb-12">
+            <div class="glass-panel p-8 rounded-3xl border-indigo-500/30 bg-indigo-900/10 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-indigo-500/10 blur-3xl"></div>
+                <div class="relative z-10">
+                    <div class="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Aesthetic Score</div>
+                    <div class="text-7xl font-heading font-bold text-white mb-2">87<span class="text-2xl text-gray-500">/100</span></div>
+                    <div class="inline-block px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold border border-green-500/30">Top 15% Percentile</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass-panel p-6 rounded-2xl border-white/10">
+                    <div class="text-gray-500 text-xs uppercase mb-2">Face Shape</div>
+                    <div class="text-white font-bold text-lg" id="res-face">Oval</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border-white/10">
+                    <div class="text-gray-500 text-xs uppercase mb-2">Skin Quality</div>
+                    <div class="text-white font-bold text-lg" id="res-skin">Good</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border-white/10">
+                    <div class="text-gray-500 text-xs uppercase mb-2">Masculinity</div>
+                    <div class="text-white font-bold text-lg" id="res-masc">High</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border-white/10">
+                    <div class="text-gray-500 text-xs uppercase mb-2">Potential</div>
+                    <div class="text-indigo-400 font-bold text-lg" id="res-pot">94/100</div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="text-2xl font-heading font-bold mb-6 text-white">Priority Action Plan</h3>
+        <div class="space-y-4 mb-12">
+            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">1</div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Hair Volume Correction</h4>
+                    <p class="text-sm text-gray-400">Your sides are too wide for your oval face shape. Tighten the sides to emphasize jawline definition.</p>
+                </div>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">2</div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Skincare: Hydration</h4>
+                    <p class="text-sm text-gray-400">Minor texture detected on cheeks. Incorporate a Hyaluronic Acid serum PM.</p>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="window.print()" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition">Download Full PDF Report</button>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 </body>
 </html>

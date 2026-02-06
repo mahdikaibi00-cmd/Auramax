@@ -8,15 +8,33 @@ exports.handler = async (event) => {
     const { image, plan } = JSON.parse(event.body);
 
     const prompts = {
-      pro: `You are a professional image and grooming advisor. Provide a practical FOUNDATION improvement report based only on visible presentation factors. Avoid assumptions about medical conditions or exact measurements. Be encouraging, neutral, and improvement-focused.
-      Analyze the person in the image for: 1. Face shape category 2. Hair volume/length 3. Skin presentation (non-medical) 4. Grooming direction 5. Clothing fit 6. Posture 7. Top 3 highest-impact upgrades.
-      Return ONLY valid JSON:
-      {"face_shape":"","hair":"","skin":"","grooming":"","style":"","posture":"","top_3_checklist":["","",""]}`,
+      pro: `You are a professional image advisor. Analyze the image for visual presentation (grooming, style, face shape) based on male aesthetic standards. 
+      CRITICAL: You MUST return a JSON object. Do not include markdown formatting.
+      Analyze:
+      1. Aesthetic Score (0-100 based on grooming/harmony)
+      2. Percentile (e.g. "Top 20%")
+      3. Face Shape
+      4. Skin Quality (One word: Clear, Textured, Fair, etc)
+      5. Masculinity/Feature Definition (One word: High, Medium, Developing)
+      6. Potential Score (Current score + 15)
+      7. Three specific, actionable improvements.
+      
+      Return JSON format:
+      {"score":82, "percentile":"Top 25%", "face_shape":"Oval", "skin_quality":"Fair", "masculinity":"Medium", "potential":92, "top_3_checklist":["Grow beard to align jaw","Use moisturizer","Fix posture"]}`,
             
-      elite: `You are an advanced personal presentation and style optimization consultant. Provide a strategic, high-level visual optimization system based only on observable presentation traits. Avoid medical claims or anatomical measurements.
-      Analyze for: 1. Visual facial balance 2. Jawline/chin framing 3. Aesthetic Archetype (Sharp & Defined, Soft & Balanced, Classic Professional, or Modern Casual) 4. Advanced color strategy 5. Precision hairstyle 6. Grooming refinement 7. Posture 8. Presence & confidence 9. Optimization Priority Map (Quick Wins, Medium Upgrades, High-Effort) 10. Top 3 changes.
-      Return ONLY valid JSON:
-      {"face_shape":"","hair":"","skin":"","grooming":"","style":"","posture":"","archetype":"","color_science":"","priority_map":{"quick_wins":[],"medium_upgrades":[],"high_effort_high_impact":[]},"presence_coaching":"","top_3_checklist":["","",""]}`
+      elite: `You are an elite aesthetic consultant. Analyze the image for maximum visual potential.
+      CRITICAL: You MUST return a JSON object. Do not include markdown formatting.
+      Analyze:
+      1. Aesthetic Score (0-100, be strict)
+      2. Percentile
+      3. Face Shape
+      4. Skin Quality
+      5. Masculinity
+      6. Potential Score
+      7. Priority Action Plan (2 distinct items with titles and descriptions).
+      
+      Return JSON format:
+      {"score":78, "percentile":"Top 30%", "face_shape":"Square", "skin_quality":"Needs Hydration", "masculinity":"High", "potential":95, "priority_actions":[{"title":"Hair Volume","desc":"Sides are too wide. Taper the sides."},{"title":"Skin Routine","desc":"Start Retinol protocol."}]}`
     };
 
     const response = await openai.chat.completions.create({
