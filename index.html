@@ -1063,8 +1063,10 @@
     let selectedPlan = 'elite'; 
     let faceModel = null;
 
+    // Load AI Model Silently
     async function loadFaceModel() {
-        try { faceModel = await blazeface.load(); } catch(e){ console.log("AI Init Error"); }
+        try { faceModel = await blazeface.load(); console.log("Model Loaded"); } 
+        catch(e){ console.log("Model Load Error", e); }
     }
     loadFaceModel();
 
@@ -1076,34 +1078,42 @@
 
     function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
 
-    // --- FIX 1: SOFT FACE DETECTION (NEVER BLOCKS USER) ---
+    // --- FACE DETECTION LOGIC ---
     async function validateAndProcess(input) {
         const file = input.files[0];
         if (!file) return;
 
         const dropZone = document.getElementById('drop-area');
-        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Scanning...</h3></div>`;
+        // Immediate Feedback
+        dropZone.innerHTML = `<div class="animate-pulse flex flex-col items-center justify-center py-8"><div class="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div><h3 class="text-white font-bold">Scanning Geometry...</h3></div>`;
         
         try {
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
-            if(!faceModel) await loadFaceModel();
+            // Try detection if model is ready
+            if(faceModel) {
+                const preds = await faceModel.estimateFaces(img, false);
+                console.log("Faces detected:", preds.length);
+                if (preds.length === 0) {
+                     console.log("No face found, but allowing proceed.");
+                }
+            }
             
-            // Attempt detection but ignore failure
-            const preds = await faceModel.estimateFaces(img, false);
-            
+            // Success - Move to Analysis
             closeUploadModal();
             runRealAnalysis(file);
 
         } catch (e) {
-            console.error("Detection glitch, bypassing:", e);
+            console.error("Detection bypassed:", e);
+            // Fail Open - Let them pay even if detection bugs out
             closeUploadModal();
             runRealAnalysis(file); 
         }
     }
 
+    // --- FAKE ANALYSIS (PRE-PAYMENT) ---
     async function runRealAnalysis(file) {
         document.getElementById('processing-modal').classList.remove('hidden');
         document.getElementById('loading-state').classList.remove('hidden');
@@ -1111,25 +1121,29 @@
         
         const pct = document.getElementById('percent');
         let p = 0;
-
-        const interval = setInterval(() => {
-            if(p < 95) { p += (Math.random() * 5); if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
-        }, 150);
-
+        
+        // Save Image First
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = async () => {
-            try {
+        reader.onload = function() {
+             try {
                 localStorage.setItem('pendingImage', reader.result);
                 localStorage.setItem('userPlan', selectedPlan);
-            } catch (e) { console.log("Storage limit", e); }
-
-            setTimeout(() => {
-                clearInterval(interval);
-                pct.innerText = '100%';
-                setTimeout(() => showPaymentSelection(), 500);
-            }, 2000); 
+            } catch (e) { 
+                console.log("Storage warning:", e); 
+            }
         };
+
+        // Visual Progress
+        const interval = setInterval(() => {
+            if(p < 95) { p += 3; if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(interval);
+            pct.innerText = '100%';
+            setTimeout(() => showPaymentSelection(), 500);
+        }, 2000); 
     }
 
     function showPaymentSelection() {
@@ -1138,8 +1152,12 @@
         if (payState) {
             payState.classList.remove('hidden');
             setTimeout(() => { payState.classList.remove('opacity-0', 'translate-y-4'); }, 50);
+            
+            // Auto-select correct plan
             const radios = document.getElementsByName('modal_plan');
-            radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
+            radios.forEach(r => { 
+                if(r.value === selectedPlan) r.checked = true; 
+            });
             updateModalButton();
         }
     }
@@ -1148,19 +1166,188 @@
         const radios = document.getElementsByName('modal_plan');
         let val = 'pro';
         radios.forEach(r => { if(r.checked) val = r.value; });
+        
         const btn = document.querySelector('#processing-modal #payment-link');
         const txt = document.getElementById('pay-btn-text');
         
         if (btn && LINKS[val]) {
             btn.href = LINKS[val];
             btn.setAttribute('href', LINKS[val]); 
-            txt.innerHTML = val === 'pro' ? `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>` : `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
+            
+            if(val === 'pro') {
+                txt.innerHTML = `Unlock Blueprint ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>`;
+            } else {
+                txt.innerHTML = `Start Elite System ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
+            }
             lucide.createIcons();
             localStorage.setItem('userPlan', val); 
         }
     }
 
-    // Drag & Drop
+    // --- REPORT GENERATOR (THE IMPORTANT PART) ---
+    function generateReportHTML(data) {
+        // Detect Plan based on unique keys
+        const isElite = data.optimization_score !== undefined;
+        const score = isElite ? data.optimization_score : data.presentation_score;
+        const summary = data.summary || "Analysis Complete.";
+
+        let html = `
+            <div class="glass-panel p-8 rounded-3xl border-indigo-500/20 bg-indigo-900/10 text-center mb-10">
+                <div class="text-xs text-indigo-300 font-bold uppercase tracking-[0.2em] mb-4">${isElite ? 'Visual Optimization Score' : 'Presentation Score'}</div>
+                <div class="text-8xl font-heading font-bold text-white mb-4">${score}<span class="text-2xl text-gray-600">/10</span></div>
+                <p class="text-gray-400 text-sm max-w-lg mx-auto leading-relaxed">${summary}</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+        `;
+
+        if (isElite) {
+            // === ELITE LAYOUT ===
+            html += `
+                <div class="glass-panel p-6 rounded-2xl border-white/5 md:col-span-2">
+                    <div class="flex items-center gap-2 mb-3"><i data-lucide="scale" class="w-4 h-4 text-indigo-400"></i><span class="text-xs font-bold text-gray-500 uppercase">Facial Balance</span></div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div><p class="text-sm text-white">${data.facial_balance?.insight || 'N/A'}</p></div>
+                        <div class="text-sm text-gray-400 border-l border-white/10 pl-4">Strategy: ${data.facial_balance?.enhancement_strategy || 'N/A'}</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border-white/5">
+                    <div class="text-[10px] text-gray-500 uppercase mb-2">Aesthetic Archetype</div>
+                    <div class="text-xl font-bold text-white mb-1">${data.archetype?.type || 'N/A'}</div>
+                    <p class="text-xs text-gray-400 mt-2">${data.archetype?.description || ''}</p>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border-white/5">
+                    <div class="text-[10px] text-gray-500 uppercase mb-2">Jawline Strategy</div>
+                    <div class="text-sm font-medium text-white">${data.jawline_strategy || 'N/A'}</div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border-white/5 md:col-span-2">
+                    <div class="text-[10px] text-gray-500 uppercase mb-4">Elite Style System</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Cuts</div>${data.style_system?.cuts || '-'}</div>
+                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Fabrics</div>${data.style_system?.fabrics || '-'}</div>
+                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Colors</div>${data.color_science?.best_colors || '-'}</div>
+                        <div class="bg-white/5 p-3 rounded-lg"><div class="text-indigo-300 mb-1">Presence</div>${data.presence_coaching?.eye_contact || '-'}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // === PRO LAYOUT ===
+            html += `
+                <div class="glass-panel p-6 rounded-2xl border-white/5">
+                    <div class="text-[10px] text-gray-500 uppercase mb-2">Face Shape</div>
+                    <div class="text-xl font-bold text-white">${data.face_shape?.type || 'N/A'}</div>
+                    <p class="text-xs text-gray-400 mt-1">${data.face_shape?.insight || ''}</p>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border-white/5">
+                    <div class="text-[10px] text-gray-500 uppercase mb-2">Hair Strategy</div>
+                    <div class="text-white font-medium text-sm mb-1">${data.hair?.strategy || 'N/A'}</div>
+                    <div class="text-xs text-red-400">Avoid: ${data.hair?.avoid || '-'}</div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border-white/5">
+                    <div class="text-[10px] text-gray-500 uppercase mb-2">Skin Snapshot</div>
+                    <div class="text-white font-medium text-sm">${data.skin?.improvement_direction || 'N/A'}</div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border-white/5">
+                    <div class="text-[10px] text-gray-500 uppercase mb-2">Grooming</div>
+                    <div class="text-white font-medium text-sm">${data.grooming?.recommendation || 'N/A'}</div>
+                    <div class="text-xs text-gray-500 mt-1">${data.grooming?.maintenance || ''}</div>
+                </div>
+            `;
+        }
+
+        html += `</div>`; // End Grid
+
+        // --- ACTION PLAN ---
+        html += `<h3 class="text-xl font-heading font-bold text-white mt-12 mb-6">Priority Action Plan</h3><div class="space-y-3">`;
+        
+        const actions = data.top_3_actions || [];
+        actions.forEach((action, i) => {
+            html += `
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-indigo-500 flex items-start gap-4">
+                    <div class="bg-indigo-500/10 text-indigo-400 font-bold h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-sm">${i+1}</div>
+                    <div class="text-white text-sm font-medium py-1">${action}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        
+        // --- NOTE ---
+        const note = data.final_note || data.expert_note || "";
+        if(note) html += `<div class="mt-8 pt-6 border-t border-white/10 text-center text-xs text-gray-500 italic">"${note}"</div>`;
+
+        return html;
+    }
+
+    // --- SUCCESS HANDLER ---
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Trigger only if ?paid=true
+        if (urlParams.get('paid') === 'true') {
+            console.log("Success URL detected.");
+            
+            // Clean up modals
+            document.getElementById('upload-modal').classList.add('hidden');
+            document.getElementById('processing-modal').classList.remove('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.querySelector('#processing-modal #payment-state').classList.add('hidden');
+            document.getElementById('status-text').innerText = "Connecting to Neural Engine...";
+
+            const savedImage = localStorage.getItem('pendingImage');
+            const savedPlan = localStorage.getItem('userPlan') || 'pro';
+
+            if (savedImage) {
+                try {
+                    // Call Backend
+                    const response = await fetch('/.netlify/functions/analyze', {
+                        method: 'POST',
+                        body: JSON.stringify({ image: savedImage, plan: savedPlan })
+                    });
+                    
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        throw new Error(errText); // Throw actual server error
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Render
+                    const reportHTML = generateReportHTML(data);
+                    document.getElementById('report-content').innerHTML = reportHTML;
+                    lucide.createIcons(); // Refresh icons in new HTML
+
+                    // Show
+                    document.getElementById('processing-modal').classList.add('hidden');
+                    document.getElementById('report-modal').classList.remove('hidden');
+                    
+                    // Cache
+                    localStorage.setItem('auraMaxResults', JSON.stringify(data));
+
+                } catch (err) {
+                    console.error("Critical Error:", err);
+                    // Show the ACTUAL error to the user so we know what to fix
+                    alert(`Report Error: ${err.message}. Please screenshot this and contact support.`);
+                    document.getElementById('processing-modal').classList.add('hidden');
+                }
+            } else {
+                // Handle Refresh logic
+                const old = localStorage.getItem('auraMaxResults');
+                if(old) {
+                    const reportHTML = generateReportHTML(JSON.parse(old));
+                    document.getElementById('report-content').innerHTML = reportHTML;
+                    document.getElementById('processing-modal').classList.add('hidden');
+                    document.getElementById('report-modal').classList.remove('hidden');
+                } else {
+                    window.location.href = '/';
+                }
+            }
+        }
+    };
+    
+    // Drag/Drop Binding
     const da = document.getElementById('drop-area');
     if(da) {
         da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
@@ -1172,90 +1359,7 @@
             validateAndProcess({files});
         });
     }
-
-    // --- FIX 2: ROBUST RESULTS MAPPING ---
-    window.onload = async function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        if (urlParams.get('paid') === 'true') {
-            
-            // Reset UI
-            document.getElementById('upload-modal').classList.add('hidden');
-            document.getElementById('processing-modal').classList.remove('hidden');
-            document.getElementById('loading-state').classList.remove('hidden');
-            document.querySelector('#processing-modal #payment-state').classList.add('hidden');
-            document.getElementById('status-text').innerText = "Analyzing Biometrics...";
-            
-            const savedImage = localStorage.getItem('pendingImage');
-            const savedPlan = localStorage.getItem('userPlan') || 'pro';
-
-            if (savedImage) {
-                try {
-                    const response = await fetch('/.netlify/functions/analyze', {
-                        method: 'POST',
-                        body: JSON.stringify({ image: savedImage, plan: savedPlan })
-                    });
-                    
-                    const data = await response.json();
-                    localStorage.setItem('auraMaxResults', JSON.stringify(data));
-                    
-                    // 1. Stats (With safety checks)
-                    if(data.score) document.getElementById('score-display').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
-                    if(data.percentile) document.getElementById('percentile-display').innerText = data.percentile;
-                    if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
-                    if(data.skin_quality) document.getElementById('res-skin').innerText = data.skin_quality;
-                    if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
-                    if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
-
-                    // 2. Action Plan - ROBUST MAPPING
-                    const container = document.getElementById('action-plan-container');
-                    container.innerHTML = ''; 
-
-                    // Check for ANY valid array list in the response
-                    let items = data.priority_actions || data.top_3_checklist || data.top_3_actions || [];
-                    
-                    if (items.length > 0) {
-                        items.forEach((item, index) => {
-                            // Handle both Object {title, desc} and String "Do this" formats
-                            let title = item.title || `Priority Action ${index + 1}`;
-                            let desc = item.desc || (typeof item === 'string' ? item : "Review your full report for details.");
-                            
-                            container.innerHTML += `
-                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
-                                <div>
-                                    <h4 class="text-white font-bold mb-1">${title}</h4>
-                                    <p class="text-sm text-gray-400">${desc}</p>
-                                </div>
-                            </div>`;
-                        });
-                    } else {
-                        // Fallback if AI returns weird format
-                        container.innerHTML = `<div class="p-4 bg-yellow-500/10 text-yellow-200 rounded-xl">Analysis complete. Please consult the aesthetic score above.</div>`;
-                    }
-
-                    document.getElementById('processing-modal').classList.add('hidden');
-                    document.getElementById('report-modal').classList.remove('hidden');
-                    
-                } catch (err) {
-                    console.error("API Failure:", err);
-                    alert("System busy. Please refresh to retry.");
-                    document.getElementById('processing-modal').classList.add('hidden');
-                }
-            } else {
-                // Refresh Logic
-                const old = localStorage.getItem('auraMaxResults');
-                if(old) {
-                    document.getElementById('processing-modal').classList.add('hidden');
-                    document.getElementById('report-modal').classList.remove('hidden');
-                } else {
-                    window.location.href = '/';
-                }
-            }
-        }
-    };
 </script>
-
 
 
 <input type="file" id="upload-input" accept="image/*" class="hidden" style="display:none;">
