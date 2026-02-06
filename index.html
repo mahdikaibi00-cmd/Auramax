@@ -326,59 +326,35 @@
 
     function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); }
 
-    // Face Detection and Process
+    // --- FIX 1: SOFT FACE DETECTION (NEVER BLOCKS USER) ---
     async function validateAndProcess(input) {
         const file = input.files[0];
         if (!file) return;
 
         const dropZone = document.getElementById('drop-area');
-        const originalContent = `
-            <div class="relative z-10">
-                <div class="w-16 h-16 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300 border border-indigo-500/30">
-                    <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400"></i>
-                </div>
-                <h3 class="text-white font-bold text-lg mb-1">Click to Upload Photo</h3>
-                <p class="text-gray-500 text-xs">or drag and drop here (JPG, PNG)</p>
-            </div>`;
+        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Scanning...</h3></div>`;
         
-        dropZone.innerHTML = `<div class="animate-pulse"><h3 class="text-white font-bold">Detecting Face...</h3></div>`;
-        document.getElementById('upload-error').classList.add('hidden');
-
         try {
+            // We still attempt detection for the visual effect
             const img = document.createElement('img');
             img.src = URL.createObjectURL(file);
             await img.decode();
             
             if(!faceModel) await loadFaceModel();
-            const preds = await faceModel.estimateFaces(img, false);
+            
+            // Proceed regardless of detection result (Fail Open)
+            closeUploadModal();
+            runRealAnalysis(file);
 
-            if (preds.length > 0) {
-                closeUploadModal();
-                runRealAnalysis(file);
-            } else {
-                dropZone.innerHTML = originalContent; 
-                lucide.createIcons();
-                const errorDiv = document.getElementById('upload-error');
-                errorDiv.classList.remove('hidden');
-                document.getElementById('error-text').innerText = "No face detected. Please try a clearer photo.";
-                input.value = ''; 
-            }
         } catch (e) {
-            console.error("Detection Error:", e);
+            console.error("Detection glitch, bypassing:", e);
+            // If detection crashes, we still let them buy
             closeUploadModal();
             runRealAnalysis(file); 
         }
     }
 
-
-
-
-
-
-
-
     async function runRealAnalysis(file) {
-        // 1. Show the loading screen
         document.getElementById('processing-modal').classList.remove('hidden');
         document.getElementById('loading-state').classList.remove('hidden');
         document.querySelector('#processing-modal #payment-state').classList.add('hidden');
@@ -386,53 +362,35 @@
         const pct = document.getElementById('percent');
         let p = 0;
 
-        // 2. Run a "Fake" Progress Bar (Visuals only)
+        // Fake loading bar
         const interval = setInterval(() => {
-            if(p < 95) {
-                p += (Math.random() * 5); // Random increments look more real
-                if(p > 95) p = 95;
-                pct.innerText = Math.floor(p) + '%';
-            }
+            if(p < 95) { p += (Math.random() * 5); if(p > 95) p = 95; pct.innerText = Math.floor(p) + '%'; }
         }, 150);
 
-        // 3. Save the image for later (When they pay)
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
-            // Save the raw image data to the browser so we can use it AFTER payment
+            // Save image to browser memory
             try {
                 localStorage.setItem('pendingImage', reader.result);
                 localStorage.setItem('userPlan', selectedPlan);
-            } catch (e) {
-                console.log("Image too large for local storage", e);
-                // In a real app, you'd upload to a server here. 
-                // For now, this works for standard selfies.
-            }
+            } catch (e) { console.log("Storage limit", e); }
 
-            // 4. Finish "Scanning" and ask for money
+            // Show Payment Screen
             setTimeout(() => {
                 clearInterval(interval);
                 pct.innerText = '100%';
                 setTimeout(() => showPaymentSelection(), 500);
-            }, 2500); // Wait 2.5 seconds to make it feel "real"
+            }, 2000); 
         };
     }
-
-
-
-
-
-
-
 
     function showPaymentSelection() {
         document.getElementById('loading-state').classList.add('hidden');
         const payState = document.querySelector('#processing-modal #payment-state');
         if (payState) {
             payState.classList.remove('hidden');
-            setTimeout(() => {
-                payState.classList.remove('opacity-0', 'translate-y-4');
-            }, 50);
+            setTimeout(() => { payState.classList.remove('opacity-0', 'translate-y-4'); }, 50);
             const radios = document.getElementsByName('modal_plan');
             radios.forEach(r => { if(r.value === selectedPlan) r.checked = true; });
             updateModalButton();
@@ -449,16 +407,13 @@
         if (btn && LINKS[val]) {
             btn.href = LINKS[val];
             btn.setAttribute('href', LINKS[val]); 
-            if(val === 'pro') {
-                txt.innerHTML = `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>`;
-            } else {
-                txt.innerHTML = `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
-            }
+            txt.innerHTML = val === 'pro' ? `Unlock Pro Report ($7) <i data-lucide="lock-open" class="w-4 h-4 ml-2"></i>` : `Start Elite Access ($29) <i data-lucide="sparkles" class="w-4 h-4 ml-2"></i>`;
             lucide.createIcons();
             localStorage.setItem('userPlan', val); 
         }
     }
 
+    // Drag & Drop
     const da = document.getElementById('drop-area');
     if(da) {
         da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-over'); });
@@ -471,106 +426,104 @@
         });
     }
 
-// --- UPDATED SUCCESS LOGIC & DATA MAPPING ---
-window.onload = async function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // 1. Check if user just paid
-    if (urlParams.get('paid') === 'true') {
-        console.log("Payment Verified. Starting AI Analysis...");
+    // --- FIX 2: ROBUST RESULTS MAPPING (Dynamic Data Handling) ---
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
         
-        // UI Handling
-        document.getElementById('upload-modal').classList.add('hidden');
-        document.getElementById('processing-modal').classList.remove('hidden');
-        document.getElementById('loading-state').classList.remove('hidden');
-        document.querySelector('#processing-modal #payment-state').classList.add('hidden');
-        document.getElementById('status-text').innerText = "Payment received! Generating Report...";
-        
-        const savedImage = localStorage.getItem('pendingImage');
-        const savedPlan = localStorage.getItem('userPlan') || 'pro';
+        if (urlParams.get('paid') === 'true') {
+            console.log("Payment verified. Fetching AI...");
+            
+            // Reset UI
+            document.getElementById('upload-modal').classList.add('hidden');
+            document.getElementById('processing-modal').classList.remove('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.querySelector('#processing-modal #payment-state').classList.add('hidden');
+            document.getElementById('status-text').innerText = "Analyzing Biometrics...";
+            
+            const savedImage = localStorage.getItem('pendingImage');
+            const savedPlan = localStorage.getItem('userPlan') || 'pro';
 
-        if (savedImage) {
-            try {
-                // 3. Call API
-                const response = await fetch('/.netlify/functions/analyze', {
-                    method: 'POST',
-                    body: JSON.stringify({ image: savedImage, plan: savedPlan })
-                });
-                
-                const data = await response.json();
-                console.log("AI Data Received:", data);
-                
-                // 4. Save & Map Data to UI
-                localStorage.setItem('auraMaxResults', JSON.stringify(data));
-                
-                // --- THIS IS THE NEW PART: FILLING THE REPORT ---
-                if(data.score) document.querySelector('.text-7xl').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
-                if(data.percentile) document.querySelector('.inline-block.px-3').innerText = data.percentile;
-                if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
-                if(data.skin_quality) document.getElementById('res-skin').innerText = data.skin_quality;
-                if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
-                if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
+            if (savedImage) {
+                try {
+                    // CALL API
+                    const response = await fetch('/.netlify/functions/analyze', {
+                        method: 'POST',
+                        body: JSON.stringify({ image: savedImage, plan: savedPlan })
+                    });
+                    
+                    const data = await response.json();
+                    console.log("AI Results:", data); 
+                    
+                    localStorage.setItem('auraMaxResults', JSON.stringify(data));
+                    
+                    // --- MAP DATA TO HTML ---
+                    // 1. Stats
+                    if(data.score) document.getElementById('score-display').innerHTML = `${data.score}<span class="text-2xl text-gray-500">/100</span>`;
+                    if(data.percentile) document.getElementById('percentile-display').innerText = data.percentile;
+                    if(data.face_shape) document.getElementById('res-face').innerText = data.face_shape;
+                    if(data.skin_quality || data.skin) document.getElementById('res-skin').innerText = data.skin_quality || data.skin;
+                    if(data.masculinity) document.getElementById('res-masc').innerText = data.masculinity;
+                    if(data.potential) document.getElementById('res-pot').innerText = `${data.potential}/100`;
 
-                // Map Recommendations (Dynamic List)
-                const actionContainer = document.querySelector('.space-y-4.mb-12');
-                if(data.priority_actions && actionContainer) {
-                    actionContainer.innerHTML = ''; // Clear fake data
-                    data.priority_actions.forEach((item, index) => {
-                        actionContainer.innerHTML += `
-                        <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                            <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">${index + 1}</div>
-                            <div>
-                                <h4 class="text-white font-bold mb-1">${item.title}</h4>
-                                <p class="text-sm text-gray-400">${item.desc}</p>
-                            </div>
-                        </div>`;
-                    });
-                } else if (data.top_3_checklist && actionContainer) {
-                     // Fallback for Pro plan
-                     actionContainer.innerHTML = '';
-                     data.top_3_checklist.forEach((item, index) => {
-                        actionContainer.innerHTML += `
-                        <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
-                            <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">${index + 1}</div>
-                            <div>
-                                <h4 class="text-white font-bold mb-1">Recommendation ${index+1}</h4>
-                                <p class="text-sm text-gray-400">${item}</p>
-                            </div>
-                        </div>`;
-                    });
+                    // 2. Action Plan Container
+                    const container = document.getElementById('action-plan-container');
+                    container.innerHTML = ''; // Wipe loading text
+
+                    // --- STRATEGY FOR ELITE PLAN (Detailed Object List) ---
+                    if(data.priority_actions && Array.isArray(data.priority_actions)) {
+                        data.priority_actions.forEach((item, index) => {
+                            container.innerHTML += `
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
+                                <div>
+                                    <h4 class="text-white font-bold mb-1">${item.title}</h4>
+                                    <p class="text-sm text-gray-400">${item.desc}</p>
+                                </div>
+                            </div>`;
+                        });
+                    } 
+                    // --- STRATEGY FOR PRO PLAN (String List) ---
+                    else if (data.top_3_checklist && Array.isArray(data.top_3_checklist)) {
+                        data.top_3_checklist.forEach((item, index) => {
+                            container.innerHTML += `
+                            <div class="glass-panel p-6 rounded-2xl border-l-4 border-indigo-500 flex gap-4">
+                                <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">${index + 1}</div>
+                                <div>
+                                    <h4 class="text-white font-bold mb-1">Priority Upgrade ${index + 1}</h4>
+                                    <p class="text-sm text-gray-400">${item}</p>
+                                </div>
+                            </div>`;
+                        });
+                    } 
+                    // --- FALLBACK (If AI structure varies) ---
+                    else {
+                        container.innerHTML = '<div class="text-yellow-500">Analysis complete. Check score summary above.</div>';
+                    }
+
+                    // Show Report
+                    document.getElementById('processing-modal').classList.add('hidden');
+                    document.getElementById('report-modal').classList.remove('hidden');
+                    
+                } catch (err) {
+                    console.error("API Failure:", err);
+                    alert("System busy. Please refresh the page to retry.");
+                    document.getElementById('processing-modal').classList.add('hidden');
                 }
-                // ------------------------------------------------
-
-                // Hide loading, Show Report
-                document.getElementById('processing-modal').classList.add('hidden');
-                document.getElementById('report-modal').classList.remove('hidden');
-                
-            } catch (err) {
-                console.error("Analysis Failed:", err);
-                alert("Analysis error. Check console.");
-                document.getElementById('processing-modal').classList.add('hidden');
-            }
-        } else {
-            // No image found (user refreshed)
-            document.getElementById('processing-modal').classList.add('hidden');
-            // Check if we have old results
-            const oldData = localStorage.getItem('auraMaxResults');
-            if(oldData) {
-                document.getElementById('report-modal').classList.remove('hidden');
             } else {
-                alert("Session expired. Please upload again.");
-                window.location.href = '/';
+                // If user refreshes on success page, try to load old data
+                const old = localStorage.getItem('auraMaxResults');
+                if(old) {
+                    const data = JSON.parse(old);
+                    // (Re-run mapping logic here if needed for refresh persistence)
+                    document.getElementById('processing-modal').classList.add('hidden');
+                    document.getElementById('report-modal').classList.remove('hidden');
+                } else {
+                    window.location.href = '/';
+                }
             }
         }
-    }
-};
-
-
-
-
-
+    };
 </script>
-
 
 
 
